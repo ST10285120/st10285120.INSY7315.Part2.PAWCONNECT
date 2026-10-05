@@ -1,0 +1,42 @@
+# Render Blueprint: free hosting for PawConnect (see docs/DEPLOYMENT-FREE.md).
+# Render → New → Blueprint → pick this repository. It creates two free web services from the Dockerfile.
+# The database is Neon (free PostgreSQL); paste its connection URLs when Render asks for them.
+# Auto-deploy is off: GitHub Actions deploys only after CI passes (deploy.yml → deploy hooks).
+services:
+  - type: web
+    name: pawconnect
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: false
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__PawConnect
+        sync: false   # Neon "main" branch connection URL
+      - key: Seed__AdminEmail
+        sync: false
+      - key: Seed__AdminPassword
+        sync: false
+      - key: Seed__DemoData
+        value: "false"
+
+  - type: web
+    name: pawconnect-staging
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: develop
+    autoDeploy: false
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Staging
+      - key: ConnectionStrings__PawConnect
+        sync: false   # Neon "staging" branch connection URL
+      - key: Seed__DemoData
+        value: "true"
+      - key: Seed__DemoPassword
+        sync: false

@@ -1,0 +1,11 @@
+@model ApplicationStatus
+@{
+    var cls = Model switch
+    {
+        ApplicationStatus.Approved or ApplicationStatus.Adopted => "stamp-approved",
+        ApplicationStatus.Rejected or ApplicationStatus.Withdrawn => "stamp-rejected",
+        ApplicationStatus.UnderReview => "stamp-pending",
+        _ => "stamp-available"
+    };
+}
+<span class="stamp @cls">@Model.Label()</span>

@@ -1,0 +1,24 @@
+# Build output
+bin/
+obj/
+publish/
+TestResults/
+CoverageReport/
+
+# IDEs
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets: never commit these (design doc 7.3 / risk register)
+.env
+*.env
+appsettings.*.local.json
+secrets.json
+node_modules/

@@ -1,0 +1,6 @@
+# Keep shell scripts with Unix line endings, even when the repo is cloned on Windows,
+# so scripts/*.sh run in Git Bash, WSL and the GitHub Actions runners.
+* text=auto
+*.sh text eol=lf
+*.jpg binary
+*.png binary

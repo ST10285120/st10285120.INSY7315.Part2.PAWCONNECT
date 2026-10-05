@@ -1,0 +1,232 @@
+# Continuous deployment to Azure App Service (design doc, sections 4.4 and 8.2).
+#
+#   push to develop -> build & test -> deploy to STAGING -> smoke test
+#   push to main    -> build & test -> manual approval (GitHub "production" environment)
+#                   -> deploy to the staging slot -> smoke test -> blue-green SWAP into production
+#                   -> health check -> automatic swap back (rollback) if production is unhealthy
+#
+# Two hosting options, chosen with the repository variable HOSTING_PLATFORM:
+#   'azure' (default) - Azure App Service + PostgreSQL, blue-green slot swaps. Setup: docs/DEPLOYMENT.md
+#   'render'          - FREE: Render web services + Neon PostgreSQL. Setup: docs/DEPLOYMENT-FREE.md
+#
+# Azure needs:
+#   secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID   (OpenID Connect, no passwords stored)
+#   vars:    AZURE_WEBAPP_NAME, AZURE_RESOURCE_GROUP
+#            USE_DEPLOYMENT_SLOTS = 'true' (S1 plan, blue-green) or 'false' (free F1 / B1 plan, see below)
+#            AZURE_WEBAPP_NAME_STAGING (only when USE_DEPLOYMENT_SLOTS is 'false': the second app infra/main.bicep creates)
+# scripts/azure-setup.sh sets all of these for you.
+#
+# No permission to create the OpenID Connect identity (common on university Azure accounts)?
+# Use publish profiles instead (F1/B1 plans, no slots):
+#   vars:    AZURE_DEPLOY_AUTH = 'publish-profile'
+#   secrets: AZURE_PUBLISH_PROFILE          (production web app → Download publish profile)
+#            AZURE_PUBLISH_PROFILE_STAGING  (staging web app → Download publish profile)
+# The AZURE_CLIENT_ID / TENANT_ID / SUBSCRIPTION_ID secrets are then not needed.
+name: Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # lets azure/login use OpenID Connect
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: ci
+    if: github.ref == 'refs/heads/develop' && vars.HOSTING_PLATFORM != 'render'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.target.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4 # for scripts/smoke-test.sh
+
+      - name: Work out the staging target
+        id: target
+        run: |
+          if [ "${{ vars.USE_DEPLOYMENT_SLOTS }}" = "false" ]; then
+            {
+              echo "app=${{ vars.AZURE_WEBAPP_NAME_STAGING }}"
+              echo "slot=production"
+              echo "url=https://${{ vars.AZURE_WEBAPP_NAME_STAGING }}.azurewebsites.net"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "app=${{ vars.AZURE_WEBAPP_NAME }}"
+              echo "slot=staging"
+              echo "url=https://${{ vars.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+
+      - uses: azure/login@v2
+        if: vars.AZURE_DEPLOY_AUTH != 'publish-profile'
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ steps.target.outputs.app }}
+          slot-name: ${{ steps.target.outputs.slot }}
+          package: ./publish
+          # Only used when AZURE_DEPLOY_AUTH = 'publish-profile'; otherwise the azure/login session is used.
+          publish-profile: ${{ vars.AZURE_DEPLOY_AUTH == 'publish-profile' && secrets.AZURE_PUBLISH_PROFILE_STAGING || '' }}
+
+      - name: Wait until this build is running
+        run: bash scripts/wait-for-version.sh "${{ steps.target.outputs.url }}" "${{ github.sha }}" 600
+
+      - name: Smoke test staging
+        run: bash scripts/smoke-test.sh "${{ steps.target.outputs.url }}"
+
+  deploy-production:
+    name: Deploy to production (blue-green)
+    needs: ci
+    if: github.ref == 'refs/heads/main' && vars.HOSTING_PLATFORM != 'render'
+    runs-on: ubuntu-latest
+    # Add required reviewers to the "production" environment in GitHub settings: this is the manual approval gate.
+    environment:
+      name: production
+      url: https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net
+    env:
+      APP: ${{ vars.AZURE_WEBAPP_NAME }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      PROD_URL: https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net
+      STAGING_URL: https://${{ vars.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+
+      - uses: azure/login@v2
+        if: vars.AZURE_DEPLOY_AUTH != 'publish-profile'
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Check the deployment settings
+        if: vars.AZURE_DEPLOY_AUTH == 'publish-profile' && vars.USE_DEPLOYMENT_SLOTS != 'false'
+        run: |
+          echo "::error::Publish-profile deployment works without slots only. Set USE_DEPLOYMENT_SLOTS to 'false'."
+          exit 1
+
+      # ----- Blue-green path (S1+ plan with a staging slot) -----
+      - name: Deploy new version to the staging slot
+        if: vars.USE_DEPLOYMENT_SLOTS != 'false'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          slot-name: staging
+          package: ./publish
+
+      # develop also deploys to the staging slot, so before swapping make sure the slot is running
+      # EXACTLY this commit (a develop deploy may have landed in between); otherwise stop, no swap.
+      - name: Check the slot runs this exact build
+        if: vars.USE_DEPLOYMENT_SLOTS != 'false'
+        run: bash scripts/wait-for-version.sh "$STAGING_URL" "$GITHUB_SHA" 600 exact
+
+      - name: Smoke test the staging slot
+        if: vars.USE_DEPLOYMENT_SLOTS != 'false'
+        run: bash scripts/smoke-test.sh "$STAGING_URL"
+
+      - name: Swap staging into production
+        if: vars.USE_DEPLOYMENT_SLOTS != 'false'
+        run: az webapp deployment slot swap --resource-group "$RG" --name "$APP" --slot staging --target-slot production
+
+      - name: Post-swap check (rolls back automatically on failure)
+        if: vars.USE_DEPLOYMENT_SLOTS != 'false'
+        run: |
+          if ! bash scripts/wait-for-version.sh "$PROD_URL" "$GITHUB_SHA" 300 exact || ! bash scripts/smoke-test.sh "$PROD_URL"; then
+            echo "::error::Production is unhealthy after the swap. Swapping back to the previous version."
+            az webapp deployment slot swap --resource-group "$RG" --name "$APP" --slot staging --target-slot production
+            exit 1
+          fi
+
+      # ----- Budget path (F1 / B1 plan, no slots): deploy directly, then verify -----
+      - name: Deploy directly to production (no slots)
+        if: vars.USE_DEPLOYMENT_SLOTS == 'false'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          package: ./publish
+          publish-profile: ${{ vars.AZURE_DEPLOY_AUTH == 'publish-profile' && secrets.AZURE_PUBLISH_PROFILE || '' }}
+
+      - name: Health check (no slots)
+        if: vars.USE_DEPLOYMENT_SLOTS == 'false'
+        run: |
+          bash scripts/wait-for-version.sh "$PROD_URL" "$GITHUB_SHA" 600 exact
+          bash scripts/smoke-test.sh "$PROD_URL"
+
+  # ======================= Free hosting: Render + Neon =======================
+  # Needs secrets RENDER_DEPLOY_HOOK_STAGING / RENDER_DEPLOY_HOOK_PRODUCTION (Render → service → Settings → Deploy Hook)
+  # and variables RENDER_STAGING_URL / RENDER_PRODUCTION_URL (e.g. https://pawconnect.onrender.com).
+
+  render-staging:
+    name: Deploy to staging (Render)
+    needs: ci
+    if: github.ref == 'refs/heads/develop' && vars.HOSTING_PLATFORM == 'render'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.RENDER_STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # wait-for-version.sh checks commit ancestry
+      # The deploy hook builds the latest commit of the service's branch, which is this commit:
+      # this workflow only runs after CI passed on a push to that branch, and runs are queued per branch.
+      - name: Trigger Render deploy
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_STAGING }}"
+      - name: Wait until the new build is live
+        run: bash scripts/wait-for-version.sh "${{ vars.RENDER_STAGING_URL }}" "${{ github.sha }}"
+      - name: Smoke test staging
+        run: bash scripts/smoke-test.sh "${{ vars.RENDER_STAGING_URL }}"
+
+  render-production:
+    name: Deploy to production (Render)
+    needs: ci
+    if: github.ref == 'refs/heads/main' && vars.HOSTING_PLATFORM == 'render'
+    runs-on: ubuntu-latest
+    # Required reviewers on the "production" environment = the manual approval gate.
+    environment:
+      name: production
+      url: ${{ vars.RENDER_PRODUCTION_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # wait-for-version.sh checks commit ancestry
+      # The deploy hook builds the latest commit of the service's branch, which is this commit:
+      # this workflow only runs after CI passed on a push to that branch, and runs are queued per branch.
+      - name: Trigger Render deploy
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PRODUCTION }}"
+      - name: Wait until the new build is live
+        run: bash scripts/wait-for-version.sh "${{ vars.RENDER_PRODUCTION_URL }}" "${{ github.sha }}"
+      # Render only switches traffic once the new instance passes its /health check (zero-downtime deploy),
+      # so a broken build never replaces the running version.
+      - name: Smoke test production
+        run: |
+          if ! bash scripts/smoke-test.sh "${{ vars.RENDER_PRODUCTION_URL }}"; then
+            echo "::error::Production smoke test failed. Roll back in Render: service → Events → previous deploy → Rollback."
+            exit 1
+          fi

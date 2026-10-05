@@ -1,6 +1,6 @@
 # PawConnect architecture & technical decisions
 
-This document explains **what** was built and **why**. It supports the hosting rationale, the architecture and system design discussion, and the security and DevOps explanation in the Task 2 presentation.
+This document explains **what** was built and **why**. It supports the hosting, the architecture and system design discussion and the security and DevOps explanation in the Task 2 presentation.
 
 ## 1. System overview
 
@@ -175,9 +175,9 @@ erDiagram
 **Integrity and performance features**
 | Feature | Purpose |
 |---|---|
-| Partial unique index `IX_AdoptionApplications_AnimalId_Active` (`WHERE Status IN ('Submitted','UnderReview','Approved')`) | Guarantees at most one open application per animal, even if two people submit at the same instant |
+| Partial unique index `IX_AdoptionApplications_AnimalId_Active`| Guarantees at most one open application per animal even if two people submit at the same instant |
 | Unique `(ShiftId, VolunteerId)` + `Shift.ConcurrencyStamp` concurrency token | No double booking and no overbooking under concurrent sign-ups |
-| `ConcurrencyStamp` on `AdoptionApplications` and `Animals` (optimistic concurrency) | If a volunteer approves at the moment the adopter withdraws, the second save is refused with a 409 instead of silently overwriting the first |
+| `ConcurrencyStamp` on `AdoptionApplications` and `Animals` | If a volunteer approves at the moment the adopter withdraws, the second save is refused with a 409 instead of silently overwriting the first |
 | Partial unique index `IX_Animals_BranchId_KennelNumber_InCare` (`WHERE Status IN ('Available','Pending')`) | One animal per kennel among animals in the shelter; an adopted or fostered animal's kennel can be reused |
 | Partial unique index `IX_AnimalPhotos_AnimalId_Primary` (`WHERE IsPrimary`) | Exactly one cover photo per animal |
 | Partial unique index `IX_Donations_ApplicationId_AdoptionFee` (`WHERE Type = 'AdoptionFee'`) | A double-click can't record the adoption fee twice |

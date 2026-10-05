@@ -1,0 +1,97 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    string Cur(string controller, string action = "") =>
+        string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase)
+        && (action == "" || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)) ? "current" : "";
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var isAdmin = User.IsInRole(Roles.Administrator);
+    var isVolunteer = User.IsInRole(Roles.Volunteer);
+    var isAdopter = User.IsInRole(Roles.Adopter);
+    var firstName = User.FindFirst("given_name")?.Value ?? User.Identity?.Name;
+    var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    var toast = TempData["Toast"] as string;
+    var toastKind = TempData["ToastKind"] as string;
+}
+<!DOCTYPE html>
+<html lang="en-ZA">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="@csrf" />
+    <meta name="description" content="Adopt, donate and volunteer with Hope &amp; Paws Animal Shelter." />
+    <title>@(ViewBag.Title != null ? ViewBag.Title + " · " : "")PawConnect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<nav class="topnav" aria-label="Main">
+  <div class="wrap">
+    <a href="/" class="brand" aria-label="PawConnect home">
+      <span class="tag-icon" aria-hidden="true"></span><span class="brand-text">PawConnect</span>
+    </a>
+    <button class="hamburger" type="button" data-toggle-nav aria-controls="navlinks" aria-expanded="false" aria-label="Toggle menu">☰</button>
+    <div class="navlinks" id="navlinks">
+      <a class="@Cur("Home","Index")" href="/">Home</a>
+      <a class="@Cur("Home","Browse")" href="/Home/Browse">Browse animals</a>
+      @if (isAdopter)
+      {
+        <a class="@Cur("Applications")" href="/Applications/Mine">My applications</a>
+      }
+      @if (isVolunteer || isAdmin)
+      {
+        <a class="@(currentController == "Volunteer" && !isAdmin ? "current" : "")" href="/Volunteer/Dashboard">Volunteer dashboard</a>
+      }
+      @if (isAdmin)
+      {
+        <a class="@Cur("Admin")" href="/Admin/Dashboard">Shelter dashboard</a>
+      }
+      <a class="@Cur("Home","Donate")" href="/Home/Donate">Donate</a>
+      @if (!signedIn)
+      {
+        <a class="@Cur("Account","Login")" href="/Account/Login">Log in</a>
+      }
+    </div>
+    @if (signedIn)
+    {
+      <div class="role-pill user-pill">
+        <a href="/Account/Me" class="user-link" title="My account">@firstName</a>
+        <form method="post" action="/Account/Logout" class="inline-form">
+          @Html.AntiForgeryToken()
+          <button type="submit" class="logout-btn">Log out</button>
+        </form>
+      </div>
+    }
+    else
+    {
+      <a class="btn btn-primary btn-sm" href="/Account/Register">Register</a>
+    }
+  </div>
+</nav>
+
+<main id="main" tabindex="-1">
+  @RenderBody()
+</main>
+
+<footer><div class="wrap footer-inner">
+  <span>© @DateTime.UtcNow.Year Hope &amp; Paws Animal Shelter · Muizenberg</span>
+  <span><a href="/Home/Privacy">Privacy notice (POPIA)</a></span>
+</div></footer>
+
+@if (!string.IsNullOrEmpty(toast))
+{
+  @* Errors are announced immediately (role=alert) and stay until dismissed; confirmations are polite and fade. *@
+  <div class="toast @(toastKind == "error" ? "toast-error" : "")" id="toast" role="@(toastKind == "error" ? "alert" : "status")" aria-live="@(toastKind == "error" ? "assertive" : "polite")" data-sticky="@(toastKind == "error" ? "true" : "false")">
+    <span class="toast-text">@toast</span>
+    <button type="button" class="toast-close" data-dismiss-toast aria-label="Dismiss message">×</button>
+  </div>
+}
+
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

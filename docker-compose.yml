@@ -1,0 +1,37 @@
+# Local development environment (design doc 4.4: "local development against a containerised Postgres").
+#
+#   docker compose up -d db        # just the database, then run the app from Rider / `dotnet run`
+#   docker compose --profile app up --build   # database + the app in a container on http://localhost:8080
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: pawconnect
+      POSTGRES_PASSWORD: pawconnect
+      POSTGRES_DB: pawconnect
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pawconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__PawConnect: "Host=db;Port=5432;Database=pawconnect;Username=pawconnect;Password=pawconnect"
+      Seed__DemoData: "true"
+      Seed__DemoPassword: "Demo!Paws2026"
+    profiles: ["app"]
+
+volumes:
+  pgdata:

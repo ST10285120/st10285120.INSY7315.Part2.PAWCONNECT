@@ -1,0 +1,12 @@
+@{
+    int code = ViewBag.Code;
+    ViewBag.Title = code == 404 ? "Page not found" : "Error";
+}
+<div class="content wrap">
+  <div class="confirm-box">
+    <div class="big-stamp">@code</div>
+    <h1>@(code == 404 ? "We couldn't find that page." : "Something went wrong.")</h1>
+    <p>It may have moved, or the animal may have found a home.</p>
+    <a class="btn btn-primary" href="/Home/Browse">Browse animals</a>
+  </div>
+</div>

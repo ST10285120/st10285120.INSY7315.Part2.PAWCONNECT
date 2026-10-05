@@ -1,0 +1,12 @@
+@model (Animal Animal, Guid? PhotoId, bool Large)
+@if (Model.PhotoId is { } photoId)
+{
+  <div class="photo-block has-photo @(Model.Large ? "gallery-main" : "")">
+    <img src="/media/photos/@photoId" alt="Photo of @Model.Animal.Name" loading="lazy" />
+  </div>
+}
+else
+{
+  <div class="photo-block @(Model.Large ? "gallery-main" : "")" role="img" aria-label="@Model.Animal.Name (no photo yet)"
+       style="background:linear-gradient(135deg,@Model.Animal.ColorFrom,@Model.Animal.ColorTo);">@Model.Animal.Emoji</div>
+}

@@ -1,0 +1,62 @@
+@model HomeVm
+@{ ViewBag.Title = "Home"; }
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Hope &amp; Paws Animal Shelter · Muizenberg</div>
+      <h1>Every kennel tag tells a story worth finishing.</h1>
+      <p class="lead">Browse animals ready for adoption, apply online in minutes and follow your application every step of the way. No phone queue required.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/Home/Browse">Browse animals</a>
+        <a class="btn btn-outline" href="/Home/Donate">Donate or sponsor</a>
+      </div>
+    </div>
+    @if (Model.Featured is { } f)
+    {
+      <div class="tag-card featured-card">
+        <span class="kennel-no">NO. @f.Animal.KennelNumber</span>
+        <partial name="_AnimalPhoto" model="(f.Animal, f.PhotoId, false)" />
+        <span class="stamp stamp-available">Available</span>
+        <h2>@f.Animal.Name</h2>
+        <div class="tag-meta">@(f.Animal.Breed ?? f.Animal.Species.ToString()) · @f.Animal.AgeLabel(f.Today) · @f.Animal.Size</div>
+        <a class="btn btn-ink btn-sm" href="/Home/Profile/@f.Animal.Id">Meet @f.Animal.Name</a>
+      </div>
+    }
+  </div>
+</div>
+
+<div class="stats-strip">
+  <div class="wrap">
+    <div class="stat"><div class="num">@Model.AdoptedThisYear</div><div class="lbl">Adopted this year</div></div>
+    <div class="stat"><div class="num">@Model.AnimalsInCare</div><div class="lbl">Animals in our care</div></div>
+    <div class="stat"><div class="num">@Model.ActiveVolunteers</div><div class="lbl">Active volunteers</div></div>
+    <div class="stat"><div class="num">@Model.DonatedThisMonth.ToString("C0", PawConnect.Core.Receipts.ZarCulture.Instance)</div><div class="lbl">Donated this month</div></div>
+  </div>
+</div>
+
+<section class="block wrap">
+  <div class="section-head">
+    <h2>Ready to meet their people</h2>
+    <a class="btn btn-ghost btn-sm" href="/Home/Browse?available=true">See all animals →</a>
+  </div>
+  @if (Model.ReadyToMeet.Count == 0 && Model.Featured == null)
+  {
+    <div class="empty-hint">Every animal has found a home. Check back soon!</div>
+  }
+  <div class="grid-3">
+    @foreach (var card in Model.ReadyToMeet)
+    {
+      <partial name="_AnimalCard" model="card" />
+    }
+  </div>
+</section>
+
+<section class="block wrap" style="padding-top:0;">
+  <div class="section-head"><h2>How adoption works</h2></div>
+  <div class="steps-row">
+    <div class="step-card"><span class="step-no">01 · Browse</span>Filter by species, size and who they get on with to find animals that suit your home.</div>
+    <div class="step-card"><span class="step-no">02 · Apply</span>Submit a short online application. No more paper forms at reception.</div>
+    <div class="step-card"><span class="step-no">03 · Review</span>A volunteer reviews your application and may arrange a home visit.</div>
+    <div class="step-card"><span class="step-no">04 · Adopt</span>Once approved, finalise the adoption fee and welcome them home.</div>
+  </div>
+</section>

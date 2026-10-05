@@ -1,0 +1,75 @@
+@model AdminDashboardVm
+@{
+    ViewBag.Title = "Shelter dashboard";
+    var s = Model.Stats;
+    var max = Model.MonthlyDonations.Count > 0 ? Math.Max(1m, Model.MonthlyDonations.Max(d => d.Amount)) : 1m;
+    var zar = PawConnect.Core.Receipts.ZarCulture.Instance;
+}
+<div class="page-head"><div class="wrap">
+  <h1>Shelter dashboard</h1>
+  <p style="margin:0;opacity:.85;">Overview for the board and funder reporting.</p>
+</div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <div class="stat-cards">
+    <div class="stat-card"><div class="num">@s.AnimalsInCare</div><div class="lbl">Animals in care</div></div>
+    <div class="stat-card"><div class="num">@s.AdoptionsThisMonth</div><div class="lbl">Adoptions this month</div></div>
+    <div class="stat-card"><div class="num">@s.ActiveVolunteers</div><div class="lbl">Active volunteers</div></div>
+    <div class="stat-card"><div class="num">@s.VolunteerHoursThisMonth.ToString("0.#")h</div><div class="lbl">Volunteer hours this month</div></div>
+  </div>
+  <div class="stat-cards" style="margin-top:-8px;">
+    <div class="stat-card"><div class="num">@s.DonationsReceivedThisMonth.ToString("C0", zar)</div><div class="lbl">Donations received this month</div></div>
+    <a class="stat-card link-card" href="/Volunteer/Dashboard"><div class="num">@s.OpenApplications</div><div class="lbl">Open applications →</div></a>
+    <a class="stat-card link-card" href="/Admin/Hours?status=Pending"><div class="num">@s.PendingHourLogs</div><div class="lbl">Hour logs to approve →</div></a>
+    <a class="stat-card link-card" href="/Admin/Donations"><div class="num">@s.PledgesAwaitingPayment</div><div class="lbl">Pledges awaiting payment →</div></a>
+  </div>
+
+  <div class="grid-2" style="align-items:start;">
+    <div>
+      <div class="section-head"><h2 style="font-size:1.2rem;">Recent applications</h2></div>
+      @if (Model.RecentApplications.Count == 0)
+      {
+        <div class="empty-hint">No applications yet.</div>
+      }
+      else
+      {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+        <table class="data-table">
+          <thead><tr><th>Ref</th><th>Animal</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>
+          @foreach (var app in Model.RecentApplications)
+          {
+            <tr>
+              <td class="mono"><a href="/Volunteer/Application/@app.Id">@app.ReferenceNumber</a></td>
+              <td>@app.Animal?.Name</td>
+              <td><partial name="_AppStatus" model="app.Status" /></td>
+              <td>@ShelterTime.ToLocal(app.SubmittedAt).ToString("yyyy-MM-dd")</td>
+            </tr>
+          }
+          </tbody>
+        </table>
+        </div>
+      }
+    </div>
+    <div>
+      <div class="section-head"><h2 style="font-size:1.2rem;">Donations received, last 6 months</h2><a class="btn btn-ghost btn-sm" href="/Admin/Reports">Reports →</a></div>
+      <div class="form-card" style="max-width:none;">
+        @* The chart is decorative for sighted users; screen readers get the same numbers as a table. *@
+        <table class="sr-only">
+          <caption>Donations received per month, last 6 months</caption>
+          <thead><tr><th scope="col">Month</th><th scope="col">Amount received</th></tr></thead>
+          <tbody>
+            @foreach (var d in Model.MonthlyDonations) { <tr><th scope="row">@d.Label</th><td>@d.Amount.ToString("C0", zar)</td></tr> }
+          </tbody>
+        </table>
+        <div class="bars" aria-hidden="true">
+          @foreach (var d in Model.MonthlyDonations)
+          {
+            var h = (int)Math.Round(d.Amount / max * 100);
+            <div class="bar-wrap"><div class="bar-val mono">@(d.Amount >= 1000 ? (d.Amount / 1000m).ToString("0.#") + "k" : d.Amount.ToString("0"))</div><div class="bar" style="height:@(Math.Max(h, 1))%;" title="@d.Label: @d.Amount.ToString("C0", zar)"></div><div class="bar-lbl">@d.Label</div></div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

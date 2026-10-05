@@ -1,0 +1,68 @@
+@model ReportVm
+@{
+    ViewBag.Title = "Reports";
+    var zar = PawConnect.Core.Receipts.ZarCulture.Instance;
+    var s = Model.Summary;
+}
+<div class="page-head"><div class="wrap"><h1>Funder report</h1><p style="margin:0;opacity:.85;">Adoptions, donations and volunteer activity for any date range.</p></div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <form method="get" action="/Admin/Reports" class="filter-panel">
+    <div class="filter-group"><label for="r-from">From</label><input id="r-from" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" required /></div>
+    <div class="filter-group"><label for="r-to">To</label><input id="r-to" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" required /></div>
+    <div class="filter-group" style="align-self:flex-end;"><button class="btn btn-ink btn-sm" type="submit">Run report</button></div>
+    @if (s != null)
+    {
+      <div class="filter-group" style="align-self:flex-end;"><a class="btn btn-primary btn-sm" href="/Admin/ExportDonations?from=@Model.From.ToString("yyyy-MM-dd")&amp;to=@Model.To.ToString("yyyy-MM-dd")">Export donations (CSV)</a></div>
+    }
+  </form>
+
+  @if (Model.Error != null) { <div class="alert alert-error" role="alert">@Model.Error</div> }
+  @if (s != null)
+  {
+    <div class="stat-cards">
+      <div class="stat-card"><div class="num">@s.DonationsReceived.ToString("C0", zar)</div><div class="lbl">Donations received (@s.DonationCount)</div></div>
+      <div class="stat-card"><div class="num">@s.Adoptions</div><div class="lbl">Adoptions completed</div></div>
+      <div class="stat-card"><div class="num">@s.ApplicationsSubmitted</div><div class="lbl">Applications submitted</div></div>
+      <div class="stat-card"><div class="num">@s.VolunteerHours.ToString("0.#")h</div><div class="lbl">Approved volunteer hours</div></div>
+    </div>
+    <div class="grid-2" style="align-items:start;">
+      <div class="form-card" style="max-width:none;">
+        <h2 style="font-size:1.05rem;">Donations by type</h2>
+        <dl class="review-list">
+          <dt>General</dt><dd class="mono">@s.GeneralDonations.ToString("C", zar)</dd>
+          <dt>Sponsorships</dt><dd class="mono">@s.Sponsorships.ToString("C", zar)</dd>
+          <dt>Adoption fees</dt><dd class="mono">@s.AdoptionFees.ToString("C", zar)</dd>
+          <dt>Outstanding pledges</dt><dd class="mono">@s.OutstandingPledges.ToString("C", zar)</dd>
+        </dl>
+      </div>
+      <div class="form-card" style="max-width:none;">
+        <h2 style="font-size:1.05rem;">Service levels</h2>
+        <dl class="review-list">
+          <dt>Avg. time to decision</dt>
+          <dd>@(s.AverageDecisionHours is { } h ? (h < 48 ? $"{h:0.#} hours ✓" : $"{h / 24:0.#} days") : "No decisions in range")</dd>
+          <dt>Target</dt><dd>Under 2 days (success criterion)</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="section-head" style="margin-top:28px;"><h2 style="font-size:1.2rem;">Donations in range (@s.Donations.Count)</h2></div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+    <table class="data-table">
+      <thead><tr><th>Receipt</th><th>Date</th><th>Donor</th><th>Type</th><th>Status</th><th>Amount</th></tr></thead>
+      <tbody>
+      @foreach (var d in s.Donations.OrderByDescending(d => d.DonatedAt))
+      {
+        <tr>
+          <td class="mono">@d.ReceiptNumber</td>
+          <td>@ShelterTime.ToLocal(d.DonatedAt).ToString("yyyy-MM-dd")</td>
+          <td>@d.Donor?.FullName</td>
+          <td>@d.Type@(d.Animal != null ? " · " + d.Animal.Name : "")</td>
+          <td>@d.Status</td>
+          <td class="mono">@d.Amount.ToString("C", zar)</td>
+        </tr>
+      }
+      </tbody>
+    </table>
+    </div>
+  }
+</div>

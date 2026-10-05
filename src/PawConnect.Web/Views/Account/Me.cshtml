@@ -1,0 +1,49 @@
+@model MyProfileVm
+@{ ViewBag.Title = "My account"; }
+<div class="page-head"><div class="wrap"><h1>My account</h1><p style="margin:0;opacity:.85;">@Model.Email · @string.Join(", ", Model.Roles)</p></div></div>
+<div class="content wrap">
+  <div class="panel-grid">
+    <div>
+      <div class="section-head" id="donations"><h2 style="font-size:1.3rem;">My donations</h2><a class="btn btn-primary btn-sm" href="/Home/Donate">Donate</a></div>
+      @if (Model.Donations.Count == 0)
+      {
+        <div class="empty-hint">No donations yet. Every rand helps!</div>
+      }
+      else
+      {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+        <table class="data-table">
+          <thead><tr><th>Receipt</th><th>Date</th><th>For</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>
+          @foreach (var d in Model.Donations)
+          {
+            <tr>
+              <td class="mono"><a href="/Home/Receipt/@d.Id">@d.ReceiptNumber</a></td>
+              <td>@ShelterTime.ToLocal(d.DonatedAt).ToString("yyyy-MM-dd")</td>
+              <td>@(d.Type == DonationType.General ? "General" : d.Type == DonationType.Sponsorship ? $"Sponsoring {d.Animal?.Name}" : $"Adoption fee · {d.Animal?.Name}")@(d.Frequency == DonationFrequency.Monthly ? " (monthly)" : "")</td>
+              <td class="mono">@d.Amount.ToString("C", PawConnect.Core.Receipts.ZarCulture.Instance)</td>
+              <td><span class="stamp @(d.Status == DonationStatus.Received ? "stamp-approved" : d.Status == DonationStatus.Cancelled ? "stamp-rejected" : "stamp-pending")">@d.Status</span></td>
+            </tr>
+          }
+          </tbody>
+        </table>
+        </div>
+      }
+    </div>
+    <div>
+      <form class="form-card" style="max-width:none;" asp-action="Me" method="post">
+        <h2 style="font-size:1.05rem;">My details</h2>
+        <partial name="_ValidationSummary" />
+        <div class="field"><label asp-for="FirstName"></label><input asp-for="FirstName" /></div>
+        <div class="field"><label asp-for="LastName"></label><input asp-for="LastName" /></div>
+        <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" /></div>
+        <button class="btn btn-primary btn-block" type="submit">Save changes</button>
+      </form>
+      <div class="form-card" style="max-width:none;margin-top:16px;">
+        <h2 style="font-size:1.05rem;">Your data (POPIA)</h2>
+        <p class="hint">Download a copy of everything PawConnect holds about you.</p>
+        <a class="btn btn-ghost btn-block" href="/Account/ExportMyData">Download my data (JSON)</a>
+      </div>
+    </div>
+  </div>
+</div>

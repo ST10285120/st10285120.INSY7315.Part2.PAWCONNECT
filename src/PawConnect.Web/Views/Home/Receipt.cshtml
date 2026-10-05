@@ -1,0 +1,20 @@
+@model PawConnect.Core.Receipts.DonationReceipt
+@{ ViewBag.Title = "Donation receipt"; }
+<div class="content wrap">
+  <div class="confirm-box receipt">
+    <div class="big-stamp">♥ Thank you</div>
+    <p style="color:var(--ink-soft);">Receipt number</p>
+    <div class="ref-no">@Model.ReceiptNumber</div>
+    <dl class="receipt-lines">
+      <dt>Date</dt><dd>@ShelterTime.ToLocal(Model.IssuedAtUtc).ToString("d MMMM yyyy")</dd>
+      <dt>Donor</dt><dd>@Model.DonorName</dd>
+      <dt>Amount</dt><dd class="mono">@Model.AmountDisplay</dd>
+      <dt>For</dt><dd>@Model.Description</dd>
+    </dl>
+    <p class="hint">@Model.StatusLine</p>
+    <div class="cta-row" style="justify-content:center;">
+      <button type="button" class="btn btn-ghost" data-print>Print receipt</button>
+      <a class="btn btn-primary" href="/Account/Me#donations">My donations</a>
+    </div>
+  </div>
+</div>

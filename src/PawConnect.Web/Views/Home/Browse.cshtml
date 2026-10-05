@@ -1,0 +1,52 @@
+@model BrowseVm
+@{
+    ViewBag.Title = "Browse animals";
+}
+<div class="page-head"><div class="wrap">
+  <h1>Adoptable animals</h1>
+  <p style="margin:0;opacity:.85;">@Model.InCareCount animals currently in our care</p>
+</div></div>
+<div class="content wrap">
+  @* Works without JavaScript (normal GET form). site.js upgrades it to live filtering via GET /api/animals. *@
+  <form class="filter-panel" method="get" action="/Home/Browse" id="browseFilters" data-live-filter>
+    <div class="filter-group">
+      <label for="f-species">Species</label>
+      <select id="f-species" name="species">
+        <option value="all" selected="@(Model.Species == "all")">All species</option>
+        <option value="Dog" selected="@(Model.Species == "Dog")">Dogs</option>
+        <option value="Cat" selected="@(Model.Species == "Cat")">Cats</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="f-size">Size</label>
+      <select id="f-size" name="size">
+        <option value="all" selected="@(Model.Size == "all")">Any size</option>
+        <option value="Small" selected="@(Model.Size == "Small")">Small</option>
+        <option value="Medium" selected="@(Model.Size == "Medium")">Medium</option>
+        <option value="Large" selected="@(Model.Size == "Large")">Large</option>
+      </select>
+    </div>
+    <div class="filter-group checks">
+      <label><input type="checkbox" name="available" value="true" checked="@Model.AvailableOnly" /> Available only</label>
+      <label><input type="checkbox" name="kids" value="true" checked="@Model.GoodWithKids" /> Good with kids</label>
+      <label><input type="checkbox" name="pets" value="true" checked="@Model.GoodWithPets" /> Good with other pets</label>
+    </div>
+    <div class="filter-group grow">
+      <label for="f-search">Search</label>
+      <div class="search-row">
+        <input class="search-input" id="f-search" type="search" name="search" value="@Model.Search" placeholder="Name or breed…" maxlength="100" />
+        <button type="submit" class="btn btn-ink btn-sm">Search</button>
+      </div>
+    </div>
+  </form>
+
+  <p class="result-count" id="resultCount" aria-live="polite">@Model.Animals.Count @(Model.Animals.Count == 1 ? "animal" : "animals") found</p>
+
+  <div class="grid-3" id="animalGrid">
+    @foreach (var card in Model.Animals)
+    {
+      <partial name="_AnimalCard" model="card" />
+    }
+  </div>
+  <div class="empty-hint" id="emptyHint" hidden="@(Model.Animals.Count > 0)">No animals match those filters yet. Try widening your search.</div>
+</div>

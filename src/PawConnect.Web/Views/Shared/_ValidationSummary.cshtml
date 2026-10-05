@@ -1,0 +1,12 @@
+@* Shows model-level errors (e.g. "Kennel 214 is already in use") in an accessible alert box. *@
+@if (!ViewData.ModelState.IsValid)
+{
+  var errors = ViewData.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)).Distinct().ToList();
+  if (errors.Count > 0)
+  {
+    <div class="alert alert-error" role="alert">
+      <strong>Please fix the following:</strong>
+      <ul>@foreach (var e in errors) { <li>@e</li> }</ul>
+    </div>
+  }
+}

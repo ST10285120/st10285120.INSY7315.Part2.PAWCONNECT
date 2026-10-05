@@ -1,0 +1,16 @@
+@model AdoptionApplication
+@{ ViewBag.Title = "Application received"; }
+<div class="content wrap">
+  <div class="confirm-box" data-clear-draft="apply-@Model.AnimalId">
+    <div class="big-stamp">✓ Application received</div>
+    <p style="color:var(--ink-soft);">Reference number</p>
+    <div class="ref-no">@Model.ReferenceNumber</div>
+    <p>Thanks for applying to adopt <strong>@Model.Animal?.Name</strong>. We've sent a confirmation to <strong>@Model.Email</strong>.</p>
+    <ul class="next-steps">
+      <li>A volunteer will review your application within 2 business days.</li>
+      <li>We may contact you to arrange a short home visit.</li>
+      <li>Track progress any time from My applications.</li>
+    </ul>
+    <a class="btn btn-primary" style="margin-top:20px;" href="/Applications/Mine">View my applications</a>
+  </div>
+</div>

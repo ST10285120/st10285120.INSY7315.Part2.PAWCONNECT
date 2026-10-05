@@ -13,6 +13,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.8" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
+    <!-- Security pins: EF Core 8.0.8 pulls these in at versions with published advisories
+         (Caching.Memory 8.0.0: CVE-2024-43483; System.Text.Json < 8.0.5: CVE-2024-43485).
+         Referencing the patched versions directly makes NuGet use them everywhere (CI gate). -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
   <!-- Real photos for the demo animals (see Data/SeedPhotos/CREDITS.md). Embedded so they work

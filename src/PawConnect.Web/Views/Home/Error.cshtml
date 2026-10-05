@@ -1,0 +1,12 @@
+@{ ViewBag.Title = "Something went wrong"; }
+<div class="content wrap">
+  <div class="confirm-box">
+    <h1>Something went wrong.</h1>
+    <p>Sorry, we couldn't complete that request. Please go back and try again.</p>
+    @if (ViewBag.TraceId != null)
+    {
+      <p class="hint">If you contact us about this, quote reference <span class="mono">@ViewBag.TraceId</span>.</p>
+    }
+    <a class="btn btn-primary" href="/">Return home</a>
+  </div>
+</div>

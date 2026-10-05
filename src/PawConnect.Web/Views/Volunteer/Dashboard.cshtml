@@ -1,0 +1,127 @@
+@inject IClock Clock
+@model VolunteerDashboardVm
+@{ ViewBag.Title = "Volunteer dashboard"; }
+<div class="page-head"><div class="wrap">
+  <h1>Volunteer dashboard</h1>
+  <p style="margin:0;opacity:.85;">Welcome back@(string.IsNullOrEmpty(Model.FirstName) ? "" : ", " + Model.FirstName). Here's what needs attention today.</p>
+</div></div>
+@if (Model.IsAdmin) { <partial name="_AdminSubNav" /> }
+<div class="content wrap">
+  <div class="panel-grid">
+    <div>
+      <div class="section-head"><h2 style="font-size:1.3rem;">Applications to review</h2></div>
+      @if (Model.OpenApplications.Count == 0)
+      {
+        <div class="empty-hint">No applications waiting for review right now.</div>
+      }
+      else
+      {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+        <table class="data-table">
+          <thead><tr><th>Ref</th><th>Applicant</th><th>Animal</th><th>Submitted</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody>
+          @foreach (var app in Model.OpenApplications)
+          {
+            <tr>
+              <td class="mono">@app.ReferenceNumber</td>
+              <td>@app.FullName</td>
+              <td>@app.Animal?.Name</td>
+              <td>@ShelterTime.ToLocal(app.SubmittedAt).ToString("d MMM HH:mm")</td>
+              <td><partial name="_AppStatus" model="app.Status" /></td>
+              <td><a class="btn btn-ink btn-sm" href="/Volunteer/Application/@app.Id">Review</a></td>
+            </tr>
+          }
+          </tbody>
+        </table>
+        </div>
+      }
+
+      <div class="section-head" style="margin-top:40px;" id="shifts"><h2 style="font-size:1.3rem;">Upcoming shifts</h2></div>
+      @if (Model.Shifts.Count == 0) { <div class="empty-hint">No shifts scheduled yet.</div> }
+      @foreach (var row in Model.Shifts)
+      {
+        var s = row.Shift;
+        var start = ShelterTime.ToLocal(s.StartsAt);
+        var end = ShelterTime.ToLocal(s.EndsAt);
+        var started = s.StartsAt <= Clock.UtcNow;
+        <div class="shift-row @(s.IsFull && !row.IsMine ? "full" : "") @(row.IsMine ? "mine" : "")">
+          <div>
+            <strong>@start.ToString("ddd d MMM")</strong> · @start.ToString("HH:mm")–@end.ToString("HH:mm") · @s.Role
+            @if (row.IsMine) { <span class="stamp stamp-approved" style="margin-left:6px;">You're on this shift</span> }
+            @if (s.Signups.Count > 0)
+            {
+              <div class="hint" style="margin:2px 0 0;">@string.Join(", ", s.Signups.Select(x => x.Volunteer?.FirstName))</div>
+            }
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="mono" style="font-size:.8rem;">@s.Filled/@s.Capacity filled</span>
+            @if (started)
+            {
+              <span class="stamp stamp-pending">In progress</span>
+            }
+            else if (row.IsMine)
+            {
+              <form asp-action="CancelShift" method="post" data-confirm="Cancel your place on this shift?">
+                <input type="hidden" name="id" value="@s.Id" />
+                <button class="btn btn-sm btn-ghost" type="submit">Cancel</button>
+              </form>
+            }
+            else
+            {
+              <form asp-action="SignUpShift" method="post">
+                <input type="hidden" name="id" value="@s.Id" />
+                <button class="btn btn-sm @(s.IsFull ? "btn-ghost" : "btn-primary")" type="submit" disabled="@s.IsFull">@(s.IsFull ? "Full" : "Sign up")</button>
+              </form>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="section-head" style="margin-top:40px;" id="hours"><h2 style="font-size:1.3rem;">My logged hours</h2></div>
+      @if (Model.MyHours.Count == 0)
+      {
+        <div class="empty-hint">You haven't logged any hours yet. Use the form on the right.</div>
+      }
+      else
+      {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Activity</th><th>Hours</th><th>Status</th><th>Notes</th></tr></thead>
+          <tbody>
+          @foreach (var h in Model.MyHours)
+          {
+            <tr>
+              <td>@h.Date.ToString("yyyy-MM-dd")</td>
+              <td>@h.Activity</td>
+              <td class="mono">@h.Hours.ToString("0.##")h</td>
+              <td><span class="stamp stamp-@(h.Status.ToString().ToLower())">@h.Status</span></td>
+              <td style="color:var(--ink-soft);font-size:.82rem;">@h.Notes</td>
+            </tr>
+          }
+          </tbody>
+        </table>
+        </div>
+      }
+    </div>
+
+    <div>
+      <div class="mini-stat"><div class="num">@Model.MyApprovedTotal.ToString("0.#")h</div><div class="lbl">My total approved hours</div></div>
+      <div class="form-card" style="max-width:none;margin-top:16px;">
+        <h2 style="font-size:1.05rem;">Log hours</h2>
+        <form asp-action="LogHours" method="post">
+          <partial name="_ValidationSummary" />
+          <div class="field"><label for="h-date">Date *</label><input id="h-date" type="date" name="HourForm.Date" value="@Model.HourForm.Date.ToString("yyyy-MM-dd")" required /></div>
+          <div class="field"><label for="h-hours">Hours *</label><input id="h-hours" type="number" step="0.25" min="0.25" max="24" name="HourForm.Hours" value="@(Model.HourForm.Hours > 0 ? Model.HourForm.Hours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "")" placeholder="e.g. 3" required /></div>
+          <div class="field"><label for="h-activity">Activity</label>
+            <select id="h-activity" name="HourForm.Activity">
+              @foreach (var a in HourLogForm.Activities) { <option selected="@(Model.HourForm.Activity == a)">@a</option> }
+            </select>
+          </div>
+          <div class="field"><label for="h-notes">Notes</label><textarea id="h-notes" name="HourForm.Notes" maxlength="500" placeholder="Optional: anything the admin should know">@Model.HourForm.Notes</textarea></div>
+          <button class="btn btn-primary btn-block" type="submit">Submit for approval</button>
+          <p class="hint" style="text-align:center;">An admin reviews logged hours before they count toward your total.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

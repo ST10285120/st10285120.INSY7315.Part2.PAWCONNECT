@@ -1,0 +1,58 @@
+@model DonationsAdminVm
+@{
+    ViewBag.Title = "Donations";
+    var zar = PawConnect.Core.Receipts.ZarCulture.Instance;
+}
+<div class="page-head"><div class="wrap"><h1>Donations</h1><p style="margin:0;opacity:.85;">Confirm pledges once the EFT clears. The donor is emailed a receipt automatically.</p></div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <div class="section-head"><h2 style="font-size:1.2rem;">Pledges awaiting payment (@Model.Pledged.Count)</h2></div>
+  @if (Model.Pledged.Count == 0) { <div class="empty-hint">No open pledges.</div> }
+  else
+  {
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Pledges awaiting payment">
+    <table class="data-table">
+      <thead><tr><th>Receipt / EFT ref</th><th>Pledged</th><th>Donor</th><th>For</th><th>Amount</th><th><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+      @foreach (var d in Model.Pledged)
+      {
+        <tr>
+          <td class="mono">@d.ReceiptNumber</td>
+          <td>@ShelterTime.ToLocal(d.DonatedAt).ToString("yyyy-MM-dd")</td>
+          <td>@d.Donor?.FullName<br /><span class="hint">@d.Donor?.Email</span></td>
+          <td>@(d.Animal != null ? "Sponsor " + d.Animal.Name : "General")@(d.Frequency == DonationFrequency.Monthly ? " (monthly)" : "")</td>
+          <td class="mono">@d.Amount.ToString("C", zar)</td>
+          <td style="white-space:nowrap;">
+            <form asp-action="MarkDonationReceived" method="post" style="display:inline;"><input type="hidden" name="id" value="@d.Id" /><button class="btn btn-ink btn-sm" type="submit">Mark received</button></form>
+            <form asp-action="CancelDonation" method="post" style="display:inline;" data-confirm="Cancel this pledge?"><input type="hidden" name="id" value="@d.Id" /><button class="btn btn-ghost btn-sm" type="submit">Cancel</button></form>
+          </td>
+        </tr>
+      }
+      </tbody>
+    </table>
+    </div>
+  }
+
+  <div class="section-head" style="margin-top:36px;"><h2 style="font-size:1.2rem;">Received in the last 30 days</h2><a class="btn btn-ghost btn-sm" href="/Admin/Reports">Full report &amp; export →</a></div>
+  @if (Model.RecentlyReceived.Count == 0) { <div class="empty-hint">Nothing received in the last 30 days.</div> }
+  else
+  {
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Donations received in the last 30 days">
+    <table class="data-table">
+      <thead><tr><th>Receipt</th><th>Received</th><th>Donor</th><th>Type</th><th>Amount</th></tr></thead>
+      <tbody>
+      @foreach (var d in Model.RecentlyReceived)
+      {
+        <tr>
+          <td class="mono"><a href="/Home/Receipt/@d.Id">@d.ReceiptNumber</a></td>
+          <td>@ShelterTime.ToLocal(d.ReceivedAt ?? d.DonatedAt).ToString("yyyy-MM-dd")</td>
+          <td>@d.Donor?.FullName</td>
+          <td>@d.Type@(d.Animal != null ? " · " + d.Animal.Name : "")</td>
+          <td class="mono">@d.Amount.ToString("C", zar)</td>
+        </tr>
+      }
+      </tbody>
+    </table>
+    </div>
+  }
+</div>

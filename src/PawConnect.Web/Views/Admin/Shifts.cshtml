@@ -1,0 +1,52 @@
+@model ShiftsAdminVm
+@{ ViewBag.Title = "Shifts"; }
+<div class="page-head"><div class="wrap"><h1>Volunteer shifts</h1><p style="margin:0;opacity:.85;">Publish the roster. Volunteers sign up from their dashboard, and a shift can never be overbooked.</p></div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <div class="panel-grid">
+    <div>
+      @if (Model.Shifts.Count == 0) { <div class="empty-hint">No upcoming shifts. Create one on the right.</div> }
+      else
+      {
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+        <table class="data-table">
+          <thead><tr><th>When</th><th>Role</th><th>Filled</th><th>Volunteers</th></tr></thead>
+          <tbody>
+          @foreach (var s in Model.Shifts)
+          {
+            var start = ShelterTime.ToLocal(s.StartsAt);
+            <tr>
+              <td>@start.ToString("ddd d MMM, HH:mm")–@ShelterTime.ToLocal(s.EndsAt).ToString("HH:mm")</td>
+              <td>@s.Role</td>
+              <td class="mono"><span class="stamp @(s.IsFull ? "stamp-approved" : s.Filled == 0 ? "stamp-rejected" : "stamp-pending")">@s.Filled/@s.Capacity</span></td>
+              <td style="font-size:.85rem;">@string.Join(", ", s.Signups.Select(x => x.Volunteer?.FullName))</td>
+            </tr>
+          }
+          </tbody>
+        </table>
+        </div>
+      }
+    </div>
+    <div>
+      <div class="form-card" style="max-width:none;">
+        <h2 style="font-size:1.05rem;">Create a shift</h2>
+        <form asp-action="CreateShift" method="post">
+          <partial name="_ValidationSummary" />
+          <div class="field"><label for="s-date">Date *</label><input id="s-date" type="date" name="NewShift.Date" value="@Model.NewShift.Date.ToString("yyyy-MM-dd")" required /></div>
+          <div class="field-row">
+            <div class="field"><label for="s-start">Start *</label><input id="s-start" type="time" name="NewShift.StartTime" value="@Model.NewShift.StartTime.ToString("HH:mm")" required /></div>
+            <div class="field"><label for="s-end">End *</label><input id="s-end" type="time" name="NewShift.EndTime" value="@Model.NewShift.EndTime.ToString("HH:mm")" required /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="s-role">Role *</label><input id="s-role" name="NewShift.Role" value="@Model.NewShift.Role" list="shift-roles" required maxlength="60" />
+              <datalist id="shift-roles">@foreach (var a in HourLogForm.Activities) { <option value="@a"></option> }</datalist></div>
+            <div class="field"><label for="s-cap">Places *</label><input id="s-cap" type="number" min="1" max="50" name="NewShift.Capacity" value="@Model.NewShift.Capacity" required /></div>
+          </div>
+          <div class="field"><label for="s-notes">Notes</label><textarea id="s-notes" name="NewShift.Notes" maxlength="500">@Model.NewShift.Notes</textarea></div>
+          <button class="btn btn-primary btn-block" type="submit">Create shift</button>
+          <p class="hint" style="text-align:center;">Times are South African Standard Time.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

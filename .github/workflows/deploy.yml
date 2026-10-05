@@ -74,7 +74,7 @@ jobs:
           name: webapp
           path: ./publish
 
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         if: vars.AZURE_DEPLOY_AUTH != 'publish-profile'
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -118,7 +118,7 @@ jobs:
           name: webapp
           path: ./publish
 
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         if: vars.AZURE_DEPLOY_AUTH != 'publish-profile'
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}

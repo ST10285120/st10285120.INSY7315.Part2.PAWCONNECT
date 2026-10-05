@@ -1,0 +1,66 @@
+@model DonateVm
+@{
+    ViewBag.Title = "Donate";
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var presets = new[] { 100, 250, 500, 1000 };
+}
+<div class="page-head"><div class="wrap"><h1>Donate or sponsor an animal</h1></div></div>
+<div class="content wrap">
+  <div class="grid-2">
+    <form class="form-card" style="max-width:none;" asp-action="Donate" asp-controller="Home" method="post" id="donateForm" data-donate>
+      <partial name="_ValidationSummary" />
+      <fieldset class="toggle-row" aria-label="How often">
+        <input type="radio" id="freq-once" name="Form.Frequency" value="OnceOff" checked="@(Model.Form.Frequency == DonationFrequency.OnceOff)" />
+        <label for="freq-once">One-time</label>
+        <input type="radio" id="freq-monthly" name="Form.Frequency" value="Monthly" checked="@(Model.Form.Frequency == DonationFrequency.Monthly)" />
+        <label for="freq-monthly">Monthly</label>
+      </fieldset>
+
+      <div class="field"><label>Choose an amount (ZAR)</label></div>
+      <div class="amount-grid">
+        @foreach (var p in presets)
+        {
+          <button type="button" class="amount-chip @(Model.Form.Amount == p ? "active" : "")" data-amount="@p">R@(p.ToString("N0"))</button>
+        }
+      </div>
+      <div class="field">
+        <label for="amountInput">Amount (R10 – R100,000)</label>
+        <input type="number" id="amountInput" name="Form.Amount" value="@Model.Form.Amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" min="10" max="100000" step="0.01" required />
+        <span asp-validation-for="Form.Amount" class="field-error"></span>
+      </div>
+
+      <div class="field"><label for="sponsorAnimal">Sponsor a specific animal? (optional)</label>
+        <select name="Form.SponsorAnimalId" id="sponsorAnimal">
+          <option value="">General donation, used where it's needed most</option>
+          @foreach (var a in Model.SponsorableAnimals)
+          {
+            <option value="@a.Id" selected="@(Model.Form.SponsorAnimalId == a.Id)">Sponsor @a.Name (No. @a.KennelNumber)</option>
+          }
+        </select>
+      </div>
+      <div class="field"><label for="note">Message (optional)</label><input id="note" name="Form.Note" maxlength="500" value="@Model.Form.Note" /></div>
+
+      @if (signedIn)
+      {
+        <button class="btn btn-primary btn-block" type="submit">Pledge R<span id="donateBtnAmt">@Model.Form.Amount.ToString("0.##")</span><span id="donateBtnFreq"></span></button>
+      }
+      else
+      {
+        var donateReturn = Uri.EscapeDataString(Model.Form.SponsorAnimalId is { } sid ? $"/Home/Donate?sponsorAnimalId={sid}" : "/Home/Donate");
+        <a class="btn btn-primary btn-block" href="/Account/Login?returnUrl=@donateReturn">Log in to donate</a>
+        <p class="hint" style="text-align:center;margin-top:10px;">An account lets us send your receipt and keep your giving history. <a href="/Account/Register?returnUrl=@donateReturn">Register</a></p>
+      }
+      <p class="hint" style="margin-top:12px;">You'll get a receipt number to use as your EFT reference. Card payments are coming soon; our team confirms each payment when it clears.</p>
+    </form>
+    <div class="impact-card">
+      <div class="eyebrow" style="color:var(--marigold);">Your impact</div>
+      <div class="amt">R<span id="impactAmt">@Model.Form.Amount.ToString("0.##")</span><span id="impactFreqLbl"></span></div>
+      <p id="impactText" style="color:var(--kraft-light); opacity:.9;">R250 covers two weeks of food and bedding for one kennel.</p>
+      <div class="bank-box">
+        <div class="eyebrow" style="color:var(--marigold);margin-bottom:6px;">EFT details</div>
+        <div class="mono" style="font-size:.85rem;line-height:1.7;">Hope &amp; Paws NPC<br/>Bank: Example Bank · Acc: 000 000 0000<br/>Branch: 250655 · Ref: your receipt no.</div>
+      </div>
+      <p style="font-size:.82rem; opacity:.75; margin-top:20px;">All donations go directly toward animal care, medical treatment and shelter operations.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,17 @@
+@model AnimalCardVm
+@{
+    var a = Model.Animal;
+}
+<article class="tag-card">
+  <span class="kennel-no">NO. @a.KennelNumber</span>
+  <partial name="_AnimalPhoto" model="(a, Model.PhotoId, false)" />
+  <span class="stamp stamp-@(a.Status.ToString().ToLower())">@a.Status</span>
+  <h2>@a.Name</h2>
+  <div class="tag-meta">@(a.Breed ?? a.Species.ToString()) · @a.AgeLabel(Model.Today) · @a.Size</div>
+  <div class="traits">
+    @if (a.IsVaccinated) { <span class="trait">Vaccinated</span> }
+    @if (a.GoodWithKids) { <span class="trait">Good with kids</span> }
+    @if (a.GoodWithOtherPets) { <span class="trait">Good with pets</span> }
+  </div>
+  <a class="btn btn-ink btn-sm" href="/Home/Profile/@a.Id" aria-label="View @a.Name's profile">View profile</a>
+</article>

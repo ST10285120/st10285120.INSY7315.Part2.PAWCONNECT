@@ -1,0 +1,105 @@
+@model ApplicationDetailVm
+@{
+    var app = Model.Application;
+    ViewBag.Title = "Application " + app.ReferenceNumber;
+}
+<div class="page-head"><div class="wrap">
+  <a class="breadcrumb" href="/Volunteer/Dashboard">← Back to dashboard</a>
+  <h1>Application <span class="mono">@app.ReferenceNumber</span></h1>
+  <p style="margin:0;opacity:.85;">@app.FullName wants to adopt <a href="/Home/Profile/@app.AnimalId" style="color:var(--marigold);">@app.Animal?.Name</a></p>
+</div></div>
+@if (Model.IsAdmin) { <partial name="_AdminSubNav" /> }
+<div class="content wrap">
+  <div class="panel-grid">
+    <div>
+      <div class="info-card" style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <partial name="_AppStatus" model="app.Status" />
+          <span class="hint">Submitted @ShelterTime.ToLocal(app.SubmittedAt).ToString("d MMM yyyy, HH:mm")</span>
+        </div>
+        <dl class="review-list" style="margin-top:14px;">
+          <dt>Name</dt><dd>@app.FullName</dd>
+          <dt>Phone</dt><dd><a href="tel:@app.Phone">@app.Phone</a></dd>
+          <dt>Email</dt><dd><a href="mailto:@app.Email">@app.Email</a></dd>
+          <dt>Home</dt><dd>@app.HomeType, @app.OwnRent.ToLower()</dd>
+          <dt>Other pets</dt><dd>@app.OtherPets</dd>
+          <dt>Why</dt><dd class="pre">@app.Why</dd>
+          @if (!string.IsNullOrWhiteSpace(app.Notes)) { <dt>Notes</dt><dd class="pre">@app.Notes</dd> }
+          @if (!string.IsNullOrWhiteSpace(app.ReviewNotes)) { <dt>Review notes</dt><dd class="pre">@app.ReviewNotes</dd> }
+          @if (app.HomeVisitCompletedAt is { } visit) { <dt>Home visit</dt><dd>Completed @ShelterTime.ToLocal(visit).ToString("d MMM yyyy")@(string.IsNullOrWhiteSpace(app.HomeVisitNotes) ? "" : ": " + app.HomeVisitNotes)</dd> }
+        </dl>
+      </div>
+
+      <div class="section-head"><h2 style="font-size:1.2rem;">History</h2></div>
+      <ol class="timeline">
+        @foreach (var h in app.StatusHistory.OrderBy(h => h.ChangedAt))
+        {
+          <li>
+            <div class="tl-date mono">@ShelterTime.ToLocal(h.ChangedAt).ToString("d MMM HH:mm")</div>
+            <div><strong>@(h.FromStatus == h.ToStatus ? (h.Note ?? "Updated") : h.ToStatus.Label())</strong>
+              @if (h.ChangedBy != null) { <span class="hint">by @h.ChangedBy.FullName</span> }
+              @if (h.Note != null && h.FromStatus != h.ToStatus) { <div class="hint">@h.Note</div> }
+            </div>
+          </li>
+        }
+      </ol>
+    </div>
+
+    <div>
+      <div class="form-card" style="max-width:none;">
+        <h2 style="font-size:1.05rem;">Next step</h2>
+        @if (Model.CanStartReview)
+        {
+          <p class="hint">Start the review so the applicant can see someone is looking at it.</p>
+          <form asp-action="StartReview" asp-route-id="@app.Id" method="post"><button class="btn btn-primary btn-block" type="submit">Start review</button></form>
+        }
+        @if (Model.CanDecide)
+        {
+          <form asp-action="Approve" asp-route-id="@app.Id" method="post" data-confirm="Approve @app.FullName's application for @(app.Animal?.Name)? They will be notified.">
+            <div class="field"><label for="approve-note">Note to applicant (optional)</label><textarea id="approve-note" name="note" maxlength="2000"></textarea></div>
+            <button class="btn btn-primary btn-block" type="submit">Approve</button>
+          </form>
+        }
+        @if (Model.IsApproved)
+        {
+          <ol class="checklist">
+            <li class="@(app.HomeVisitCompletedAt != null ? "done" : "")">Home visit</li>
+            <li class="@(Model.FeeRecorded ? "done" : "")">Adoption fee received</li>
+          </ol>
+          @if (app.HomeVisitCompletedAt == null)
+          {
+            <form asp-action="HomeVisit" asp-route-id="@app.Id" method="post">
+              <div class="field"><label for="visit-notes">Home visit notes</label><textarea id="visit-notes" name="notes" maxlength="2000"></textarea></div>
+              <button class="btn btn-ink btn-block" type="submit">Record home visit</button>
+            </form>
+          }
+          @if (!Model.FeeRecorded)
+          {
+            <form asp-action="AdoptionFee" asp-route-id="@app.Id" method="post" style="margin-top:14px;">
+              <div class="field"><label for="fee">Adoption fee received (R)</label><input id="fee" name="amount" type="number" min="1" step="0.01" value="950" required /></div>
+              <button class="btn btn-ink btn-block" type="submit">Record adoption fee</button>
+            </form>
+          }
+          <form asp-action="Complete" asp-route-id="@app.Id" method="post" style="margin-top:14px;" data-confirm="Mark @(app.Animal?.Name) as adopted? This closes the application.">
+            <button class="btn btn-primary btn-block" type="submit" disabled="@(!Model.CanComplete)">Mark as adopted</button>
+            @if (!Model.CanComplete) { <p class="hint">Record the home visit and the adoption fee first.</p> }
+          </form>
+        }
+        @if (Model.CanReject)
+        {
+          <details class="reject-box">
+            <summary>Reject application</summary>
+            <form asp-action="Reject" asp-route-id="@app.Id" method="post" data-confirm="Reject this application? The applicant will be notified.">
+              <div class="field"><label for="reject-note">Reason (sent to the applicant)</label><textarea id="reject-note" name="note" maxlength="2000"></textarea></div>
+              <button class="btn btn-ghost btn-block" type="submit">Reject</button>
+            </form>
+          </details>
+        }
+        @if (ApplicationStateMachine.IsTerminal(app.Status))
+        {
+          <p class="hint">This application is closed (@app.Status.Label()).</p>
+        }
+      </div>
+    </div>
+  </div>
+</div>

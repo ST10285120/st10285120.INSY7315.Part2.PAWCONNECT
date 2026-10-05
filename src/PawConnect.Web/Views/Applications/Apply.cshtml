@@ -1,0 +1,66 @@
+@model ApplyVm
+@{
+    ViewBag.Title = "Adoption application";
+    var f = Model.Form;
+}
+<div class="page-head"><div class="wrap">
+  <a class="breadcrumb" href="/Home/Profile/@Model.Animal.Id">← Back to @Model.Animal.Name's profile</a>
+  <h1>Adoption application: @Model.Animal.Name</h1>
+</div></div>
+<div class="content wrap">
+  <ol class="stepper" aria-label="Application steps">
+    <li class="sp active" id="step-tab-1">1 · About you</li>
+    <li class="sp" id="step-tab-2">2 · Your home</li>
+    <li class="sp" id="step-tab-3">3 · Review &amp; submit</li>
+  </ol>
+
+  @* Multi-step form with autosave (UX journey map). Without JavaScript all steps show at once. *@
+  <form asp-action="Submit" asp-controller="Applications" method="post" id="applyForm" data-apply data-animal-name="@Model.Animal.Name" data-draft-key="apply-@Model.Animal.Id">
+    <partial name="_ValidationSummary" />
+    <input type="hidden" name="Form.AnimalId" value="@Model.Animal.Id" />
+
+    <div class="form-card step" id="step-1" data-step="1">
+      <div class="field-row">
+        <div class="field"><label for="f_name">Full name *</label><input name="Form.FullName" id="f_name" value="@f.FullName" required maxlength="120" autocomplete="name" /><span asp-validation-for="Form.FullName" class="field-error"></span></div>
+        <div class="field"><label for="f_phone">Phone number *</label><input name="Form.Phone" id="f_phone" value="@f.Phone" required maxlength="30" type="tel" autocomplete="tel" /><span asp-validation-for="Form.Phone" class="field-error"></span></div>
+      </div>
+      <div class="field"><label for="f_email">Email address *</label><input name="Form.Email" id="f_email" type="email" value="@f.Email" required maxlength="200" autocomplete="email" /><span asp-validation-for="Form.Email" class="field-error"></span></div>
+      <div class="field"><label for="f_why">Why would you like to adopt @Model.Animal.Name? *</label><textarea name="Form.Why" id="f_why" required maxlength="2000">@f.Why</textarea><span asp-validation-for="Form.Why" class="field-error"></span></div>
+      <div class="form-actions"><span class="hint" data-autosave-status></span><button type="button" class="btn btn-primary" data-go-step="2">Next: Your home →</button></div>
+    </div>
+
+    <div class="form-card step" id="step-2" data-step="2">
+      <div class="field"><label for="f_home">Home type *</label>
+        <select name="Form.HomeType" id="f_home">
+          @foreach (var o in ApplicationForm.HomeTypes) { <option selected="@(f.HomeType == o)">@o</option> }
+        </select>
+        <span asp-validation-for="Form.HomeType" class="field-error"></span>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="f_own">Own or rent?</label>
+          <select name="Form.OwnRent" id="f_own">@foreach (var o in ApplicationForm.OwnRentOptions) { <option selected="@(f.OwnRent == o)">@o</option> }</select>
+          <span asp-validation-for="Form.OwnRent" class="field-error"></span>
+        </div>
+        <div class="field"><label for="f_pets">Other pets at home?</label>
+          <select name="Form.OtherPets" id="f_pets">@foreach (var o in ApplicationForm.OtherPetsOptions) { <option selected="@(f.OtherPets == o)">@o</option> }</select>
+          <span asp-validation-for="Form.OtherPets" class="field-error"></span>
+        </div>
+      </div>
+      <div class="field"><label for="f_notes">Anything else we should know?</label><textarea name="Form.Notes" id="f_notes" maxlength="2000">@f.Notes</textarea><span asp-validation-for="Form.Notes" class="field-error"></span></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" data-go-step="1">← Back</button>
+        <button type="button" class="btn btn-primary" data-go-step="3">Next: Review →</button>
+      </div>
+    </div>
+
+    <div class="form-card step" id="step-3" data-step="3">
+      <h2 style="font-size:1.1rem;">Review your application</h2>
+      <dl id="reviewSummary" class="review-list"></dl>
+      <p class="hint">By submitting you confirm the details above are accurate. A volunteer will review your application, typically within 2 business days.</p>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" data-go-step="2">← Back</button>
+        <button type="submit" class="btn btn-primary" data-busy-text="Submitting…">Submit application</button>
+      </div>
+    </div>
+  </form>
+</div>

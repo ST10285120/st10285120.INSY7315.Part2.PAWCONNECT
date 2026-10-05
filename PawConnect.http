@@ -1,0 +1,38 @@
+### PawConnect API requests (open in Rider or Visual Studio and click "Run").
+### Start the app first (docker compose up -d db; dotnet run --project src/PawConnect.Web).
+@host = http://localhost:5231
+
+### Public: list animals (same filters as the Browse page)
+GET {{host}}/api/animals?species=Cat&available=true
+
+### Get a bearer token as the demo volunteer
+# @name login
+POST {{host}}/api/auth/token
+Content-Type: application/json
+
+{ "email": "priya@pawconnect.demo", "password": "Demo!Paws2026" }
+
+### Save the token for the requests below
+@token = {{login.response.body.$.accessToken}}
+
+### Upcoming shifts (volunteer/admin only)
+GET {{host}}/api/shifts
+Authorization: Bearer {{token}}
+
+### Animal profile + medical history (staff only). Replace the id with one from the list above.
+GET {{host}}/api/animals/00000000-0000-0000-0000-000000000000?include=history
+Authorization: Bearer {{token}}
+
+### Log a medical record (design doc 4.2)
+POST {{host}}/api/medical-records
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "animalId": "00000000-0000-0000-0000-000000000000",
+  "recordType": "Vaccination",
+  "title": "Rabies booster",
+  "vetName": "Dr K. Petersen",
+  "recordDate": "2026-09-26",
+  "nextDueDate": "2027-09-26"
+}

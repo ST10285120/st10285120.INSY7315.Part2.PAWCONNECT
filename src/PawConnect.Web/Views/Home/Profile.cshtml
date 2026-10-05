@@ -1,0 +1,105 @@
+@model ProfileVm
+@{
+    var a = Model.Animal;
+    ViewBag.Title = a.Name;
+    var primary = Model.Photos.FirstOrDefault();
+}
+<div class="page-head"><div class="wrap">
+  <a class="breadcrumb" href="/Home/Browse">← Back to all animals</a>
+  <h1>@a.Name</h1>
+</div></div>
+<div class="content wrap">
+  <div class="profile-grid">
+    <div>
+      <partial name="_AnimalPhoto" model="(a, primary?.Id, true)" />
+      @if (Model.Photos.Count > 1)
+      {
+        <div class="gallery-thumbs" data-gallery>
+          @for (var i = 0; i < Model.Photos.Count; i++)
+          {
+            var p = Model.Photos[i];
+            <button type="button" class="photo-block has-photo thumb" data-photo="/media/photos/@p.Id"
+                    data-alt="Photo @(i + 1) of @a.Name" aria-label="Show photo @(i + 1) of @Model.Photos.Count"
+                    aria-pressed="@(i == 0 ? "true" : "false")">
+              <img src="/media/photos/@p.Id" alt="" loading="lazy" />
+            </button>
+          }
+        </div>
+      }
+    </div>
+    <div class="info-card">
+      <span class="stamp stamp-@(a.Status.ToString().ToLower())">@a.Status</span>
+      @if (a.IsVaccinated)
+      {
+        <span class="badge badge-ok" title="Vaccinations up to date">✓ Vaccinated</span>
+      }
+      else
+      {
+        <span class="badge badge-warn" title="Vaccination course in progress">Vaccinations in progress</span>
+      }
+      <h2 style="margin-top:10px;">@a.Name</h2>
+      <p style="color:var(--ink-soft);">@a.Bio</p>
+      <div class="vitals">
+        <div><span>Species</span>@a.Species</div>
+        <div><span>Breed</span>@(a.Breed ?? "Unknown")</div>
+        <div><span>Age</span>@a.AgeLabel(Model.Today)</div>
+        <div><span>Size</span>@a.Size</div>
+        <div><span>Good with kids</span>@(a.GoodWithKids ? "Yes" : "Ask us")</div>
+        <div><span>Good with pets</span>@(a.GoodWithOtherPets ? "Yes" : "Ask us")</div>
+        <div><span>Kennel no.</span>@a.KennelNumber</div>
+        <div><span>In our care since</span>@a.IntakeDate.ToString("d MMM yyyy")</div>
+      </div>
+      <div class="cta-row">
+        @if (a.Status == AnimalStatus.Available && !Model.IsStaff)
+        {
+          <a class="btn btn-primary" href="/Applications/Apply?animalId=@a.Id">Apply to adopt</a>
+        }
+        else if (a.Status != AnimalStatus.Available)
+        {
+          <button class="btn btn-primary" disabled>Not currently available</button>
+        }
+        @if (a.Status != AnimalStatus.Adopted)
+        {
+          <a class="btn btn-ghost" href="/Home/Donate?sponsorAnimalId=@a.Id">Sponsor @a.Name</a>
+        }
+        @if (Model.IsAdmin)
+        {
+          <a class="btn btn-ghost" href="/Admin/EditAnimal/@a.Id">Edit</a>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (Model.IsStaff)
+  {
+    @* Medical history is staff-only. It's loaded from GET /api/animals/{id}?include=history and
+       new records are posted to POST /api/medical-records (design doc, section 4.2). *@
+    <section class="medical" id="medical" data-medical data-animal-id="@a.Id">
+      <div class="section-head"><h2 style="font-size:1.3rem;">Medical history</h2></div>
+      <div class="panel-grid">
+        <div>
+          <ol class="timeline" id="medicalList" aria-live="polite"><li class="hint">Loading medical history…</li></ol>
+        </div>
+        <div>
+          <form class="form-card" style="max-width:none;" id="medicalForm" novalidate>
+            <h2 style="font-size:1.05rem;">Log a medical record</h2>
+            <div class="field"><label for="m-type">Type</label>
+              <select id="m-type" name="recordType">
+                @foreach (var t in Enum.GetValues<MedicalRecordType>()) { <option value="@t">@t</option> }
+              </select>
+            </div>
+            <div class="field"><label for="m-title">What was done? *</label><input id="m-title" name="title" required maxlength="120" placeholder="e.g. Rabies vaccination" /></div>
+            <div class="field-row">
+              <div class="field"><label for="m-date">Date *</label><input id="m-date" name="recordDate" type="date" required value="@Model.Today.ToString("yyyy-MM-dd")" max="@Model.Today.ToString("yyyy-MM-dd")" /></div>
+              <div class="field"><label for="m-due">Next due</label><input id="m-due" name="nextDueDate" type="date" /></div>
+            </div>
+            <div class="field"><label for="m-vet">Vet</label><input id="m-vet" name="vetName" maxlength="120" /></div>
+            <div class="field"><label for="m-details">Details</label><textarea id="m-details" name="details" maxlength="2000"></textarea></div>
+            <div class="form-error" id="medicalError" role="alert" hidden></div>
+            <button class="btn btn-primary btn-block" type="submit">Save record</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  }
+</div>

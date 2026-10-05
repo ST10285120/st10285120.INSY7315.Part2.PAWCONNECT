@@ -1,0 +1,27 @@
+@model LoginVm
+@{ ViewBag.Title = "Log in"; }
+<div class="page-head"><div class="wrap"><h1>Welcome back</h1></div></div>
+<div class="content wrap">
+  <div class="tabs">
+    <a href="/Account/Login" class="active" aria-current="page">Log in</a>
+    <a href="/Account/Register@(Model.ReturnUrl != null ? "?returnUrl=" + Uri.EscapeDataString(Model.ReturnUrl) : "")">Register</a>
+  </div>
+  <form class="form-card" asp-action="Login" asp-controller="Account" method="post">
+    <partial name="_ValidationSummary" />
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div class="field">
+      <label asp-for="Email"></label>
+      <input asp-for="Email" autocomplete="username" placeholder="you@example.com" />
+      <span asp-validation-for="Email" class="field-error"></span>
+    </div>
+    <div class="field">
+      <label asp-for="Password"></label>
+      <input asp-for="Password" autocomplete="current-password" />
+      <span asp-validation-for="Password" class="field-error"></span>
+    </div>
+    <div class="field">
+      <label class="check"><input asp-for="RememberMe" /> Keep me signed in</label>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">Log in</button>
+  </form>
+</div>

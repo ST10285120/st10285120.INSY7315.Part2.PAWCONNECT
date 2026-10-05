@@ -1,0 +1,43 @@
+@model List<VolunteerRowVm>
+@{
+    ViewBag.Title = "Volunteers";
+    string sort = ViewBag.Sort;
+}
+<div class="page-head"><div class="wrap"><h1>Volunteers</h1><p style="margin:0;opacity:.85;">Everyone registered to help at Hope &amp; Paws.</p></div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <div class="section-head"><span></span><a class="btn btn-primary btn-sm" href="/Admin/Users?filter=Volunteer#new-user">Add volunteer</a></div>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="sortable-th" aria-sort="@(sort == "name" ? "ascending" : "none")"><a href="/Admin/Volunteers?sort=name">Name</a></th>
+        <th>Activity</th><th>Email</th><th>Phone</th>
+        <th class="sortable-th" aria-sort="@(sort == "joined" ? "ascending" : "none")"><a href="/Admin/Volunteers?sort=joined">Joined</a></th>
+        <th class="sortable-th" aria-sort="@(sort == "hours" ? "descending" : "none")"><a href="/Admin/Volunteers?sort=hours">Approved hours</a></th>
+        <th>Pending logs</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var r in Model)
+      {
+        var v = r.Volunteer;
+        <tr>
+          <td><strong>@v.FullName</strong></td>
+          <td>@v.VolunteerRole</td>
+          <td><a href="mailto:@v.Email">@v.Email</a></td>
+          <td>@v.PhoneNumber</td>
+          <td>@ShelterTime.ToLocal(v.CreatedAt).ToString("yyyy-MM-dd")</td>
+          <td class="mono">@r.ApprovedHours.ToString("0.#")h</td>
+          <td>
+            @if (r.PendingLogs > 0) { <a href="/Admin/Hours?volunteerId=@v.Id&amp;status=Pending" class="stamp stamp-pending">@r.PendingLogs pending</a> }
+            else { <span style="color:var(--ink-soft);">—</span> }
+          </td>
+          <td>@if (v.IsActive) { <span class="stamp stamp-available">Active</span> } else { <span class="stamp stamp-adopted">Inactive</span> }</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  </div>
+  <p class="hint" style="margin-top:14px;">Sorted by @(sort == "hours" ? "approved hours (highest first)" : sort == "joined" ? "join date" : "name").</p>
+</div>

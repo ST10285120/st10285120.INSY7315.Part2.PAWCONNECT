@@ -1,0 +1,19 @@
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string Cls(string a, string c = "Admin") =>
+        string.Equals(action, a, StringComparison.OrdinalIgnoreCase) && string.Equals(controller, c, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<nav class="admin-subnav" aria-label="Shelter admin">
+  <div class="wrap admin-subnav-inner">
+    <a class="@Cls("Dashboard")" href="/Admin/Dashboard">Overview</a>
+    <a class="@Cls("Dashboard","Volunteer")" href="/Volunteer/Dashboard">Applications &amp; shifts</a>
+    <a class="@Cls("Animals") @Cls("EditAnimal")" href="/Admin/Animals">Animals</a>
+    <a class="@Cls("Shifts")" href="/Admin/Shifts">Shifts</a>
+    <a class="@Cls("Volunteers")" href="/Admin/Volunteers">Volunteers</a>
+    <a class="@Cls("Hours")" href="/Admin/Hours">Volunteer hours</a>
+    <a class="@Cls("Donations")" href="/Admin/Donations">Donations</a>
+    <a class="@Cls("Reports")" href="/Admin/Reports">Reports</a>
+    <a class="@Cls("Users")" href="/Admin/Users">Users</a>
+  </div>
+</nav>

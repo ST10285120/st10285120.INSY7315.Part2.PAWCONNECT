@@ -1,0 +1,46 @@
+@model AdminAnimalsVm
+@{ ViewBag.Title = "Manage animals"; }
+<div class="page-head"><div class="wrap"><h1>Manage animals</h1><p style="margin:0;opacity:.85;">Update intake status or add a new arrival.</p></div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <div class="panel-grid">
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+      <table class="data-table">
+        <thead><tr><th>Kennel</th><th>Name</th><th>Species</th><th>Status</th><th>Update status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+        @foreach (var a in Model.Animals)
+        {
+          <tr>
+            <td class="mono">@a.KennelNumber</td>
+            <td><a href="/Home/Profile/@a.Id">@a.Name</a></td>
+            <td>@a.Species</td>
+            <td><span class="stamp stamp-@(a.Status.ToString().ToLower())">@a.Status</span></td>
+            <td>
+              <form asp-action="SetAnimalStatus" method="post" class="status-form">
+                <input type="hidden" name="id" value="@a.Id" />
+                <label class="sr-only" for="status-@a.Id">Status for @a.Name</label>
+                <select name="status" id="status-@a.Id">
+                  @foreach (var st in Enum.GetValues<AnimalStatus>().Where(x => x != AnimalStatus.Pending || a.Status == AnimalStatus.Pending)) { <option value="@st" selected="@(a.Status == st)">@st</option> }
+                </select>
+                <button class="btn btn-ink btn-sm" type="submit">Save</button>
+              </form>
+            </td>
+            <td><a class="btn btn-ghost btn-sm" href="/Admin/EditAnimal/@a.Id">Edit</a></td>
+          </tr>
+        }
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="form-card" style="max-width:none;">
+        <h2 style="font-size:1.05rem;">Record a new arrival</h2>
+        <form asp-action="AddAnimal" method="post">
+          <partial name="_ValidationSummary" />
+          <partial name="_AnimalFields" model='(Model.NewAnimal, Model.Branches, "NewAnimal")' />
+          <button class="btn btn-primary btn-block" type="submit">Add animal</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

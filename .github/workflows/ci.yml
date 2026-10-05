@@ -1,0 +1,172 @@
+# Continuous integration (design doc, section 8.2).
+# Runs on every pull request and push. A PR can't be merged while this fails
+# (enable "Require status checks to pass" in the branch protection rules).
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: ["feature/**", "fix/**"] # main/develop pushes run CI through deploy.yml
+  workflow_call: # reused by deploy.yml so every deployment is built and tested first
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-and-test:
+    name: Build, test & scan
+    runs-on: ubuntu-latest
+
+    services:
+      # A real PostgreSQL: the database tests (constraints, concurrency) and the migration check
+      # run against the same engine as production.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pawconnect
+          POSTGRES_PASSWORD: pawconnect
+          POSTGRES_DB: pawconnect
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pawconnect"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore PawConnect.sln
+
+      - name: Build
+        # The commit id is stamped into the build, so /version can prove which build is live.
+        run: dotnet build PawConnect.sln --configuration Release --no-restore -p:SourceRevisionId=${{ github.sha }}
+
+      - name: Unit, integration + PostgreSQL tests (with coverage)
+        env:
+          # Enables tests/PawConnect.Tests/Database: each test builds a fresh database from the migrations.
+          PAWCONNECT_TEST_POSTGRES: "Host=localhost;Port=5432;Username=pawconnect;Password=pawconnect;Database=postgres"
+        run: >
+          dotnet test PawConnect.sln --configuration Release --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+
+      - name: Coverage report (shown on the workflow run's summary page)
+        if: always()
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"TestResults/**/coverage.cobertura.xml" \
+            -targetdir:CoverageReport \
+            -reporttypes:"MarkdownSummaryGithub;Html;TextSummary" \
+            -assemblyfilters:"+PawConnect.Core;+PawConnect.Infrastructure;+PawConnect.Web" \
+            -classfilters:"-PawConnect.Infrastructure.Data.Migrations.*;-AspNetCoreGeneratedDocument.*"
+          cat CoverageReport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      # Quality gate (NFR: at least 70% automated test coverage). Change the repository variable
+      # COVERAGE_MIN to adjust it.
+      - name: Enforce minimum line coverage
+        env:
+          COVERAGE_MIN: ${{ vars.COVERAGE_MIN || '70' }}
+        run: |
+          LINE=$(sed -n 's/^ *Line coverage: *\([0-9.]*\)%.*/\1/p' CoverageReport/Summary.txt | head -n1)
+          echo "Line coverage: ${LINE}% (minimum ${COVERAGE_MIN}%)"
+          if awk -v c="$LINE" -v m="$COVERAGE_MIN" 'BEGIN { exit !(c + 0 < m + 0) }'; then
+            echo "::error::Line coverage ${LINE}% is below the ${COVERAGE_MIN}% minimum."
+            exit 1
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            TestResults
+            CoverageReport
+
+      # Security: fail the build if any NuGet package has a known vulnerability (design doc 7.3).
+      - name: Check for vulnerable packages
+        run: |
+          dotnet list PawConnect.sln package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          if grep -q -i "has the following vulnerable packages" vulnerable.txt; then
+            echo "::error::Vulnerable NuGet packages found. Update them before merging."
+            exit 1
+          fi
+
+      # Make sure every model change has a matching EF Core migration, then apply them to a real database.
+      - name: Check EF Core migrations
+        env:
+          PAWCONNECT_DB: "Host=localhost;Port=5432;Database=pawconnect;Username=pawconnect;Password=pawconnect"
+          ConnectionStrings__PawConnect: "Host=localhost;Port=5432;Database=pawconnect;Username=pawconnect;Password=pawconnect"
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.8
+          dotnet ef migrations has-pending-model-changes --project src/PawConnect.Infrastructure --startup-project src/PawConnect.Web --no-build --configuration Release
+          dotnet ef database update --project src/PawConnect.Infrastructure --startup-project src/PawConnect.Web --no-build --configuration Release
+
+      - name: Publish web app
+        run: dotnet publish src/PawConnect.Web/PawConnect.Web.csproj --configuration Release --no-build --output ./publish
+
+      - name: Upload deployable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapp
+          path: ./publish
+          retention-days: 14
+
+  accessibility:
+    name: Accessibility audit (WCAG 2.1 AA)
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright + axe-core
+        run: |
+          pip install playwright==1.47.0
+          python -m playwright install --with-deps chromium
+          npm install --no-save axe-core@4
+
+      # The audit runs against the real app on the in-memory database with demo data (no PostgreSQL needed).
+      - name: Start PawConnect
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5231
+          Database__UseInMemory: "true"
+          Seed__DemoData: "true"
+          Seed__DemoPassword: "Demo!Paws2026"
+        run: |
+          dotnet build src/PawConnect.Web --configuration Release
+          nohup dotnet run --project src/PawConnect.Web --configuration Release --no-build --no-launch-profile > app.log 2>&1 &
+          for _ in $(seq 1 60); do curl -sf http://localhost:5231/health && break; sleep 2; done
+
+      - name: Audit every page for every role (desktop + mobile)
+        run: python tests/accessibility/axe_audit.py http://localhost:5231
+
+      - name: App log (on failure)
+        if: failure()
+        run: cat app.log

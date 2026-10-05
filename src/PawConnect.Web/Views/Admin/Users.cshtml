@@ -1,0 +1,82 @@
+@model UsersAdminVm
+@{ ViewBag.Title = "Users"; }
+<div class="page-head"><div class="wrap"><h1>Users &amp; access</h1><p style="margin:0;opacity:.85;">Add staff and volunteers, change roles, or deactivate accounts.</p></div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <div class="panel-grid">
+    <div>
+      <div class="filter-bar">
+        @foreach (var f in new[] { "all" }.Concat(Roles.All))
+        {
+          <a class="chip @(Model.Filter == f ? "active" : "")" href="/Admin/Users?filter=@f">@(f == "all" ? "Everyone" : f + "s")</a>
+        }
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable table">
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+        @foreach (var row in Model.Users)
+        {
+          var u = row.User;
+          var self = u.Id == Model.CurrentUserId;
+          <tr>
+            <td><strong>@u.FullName</strong>@if (self) { <span class="hint"> (you)</span> }</td>
+            <td>@u.Email</td>
+            <td>@foreach (var r in row.Roles) { <span class="stamp stamp-available" style="margin-right:4px;">@r</span> }</td>
+            <td>@if (u.IsActive) { <span class="stamp stamp-approved">Active</span> } else { <span class="stamp stamp-rejected">Deactivated</span> }</td>
+            <td>
+              <details class="row-actions">
+                <summary class="btn btn-ghost btn-sm">Manage</summary>
+                <div class="row-actions-menu">
+                  @foreach (var role in Roles.All)
+                  {
+                    var has = row.Roles.Contains(role);
+                    if (self && role == Roles.Administrator) { continue; }
+                    <form asp-action="SetRole" method="post">
+                      <input type="hidden" name="userId" value="@u.Id" /><input type="hidden" name="role" value="@role" /><input type="hidden" name="grant" value="@((!has).ToString().ToLower())" />
+                      <button class="btn btn-ghost btn-sm btn-block" type="submit">@(has ? "Remove" : "Make") @role.ToLower()</button>
+                    </form>
+                  }
+                  @if (!self)
+                  {
+                    <form asp-action="SetActive" method="post" data-confirm="@(u.IsActive ? "Deactivate" : "Reactivate") @u.FullName?">
+                      <input type="hidden" name="userId" value="@u.Id" /><input type="hidden" name="active" value="@((!u.IsActive).ToString().ToLower())" />
+                      <button class="btn btn-ink btn-sm btn-block" type="submit">@(u.IsActive ? "Deactivate" : "Reactivate")</button>
+                    </form>
+                  }
+                </div>
+              </details>
+            </td>
+          </tr>
+        }
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div>
+      <div class="form-card" style="max-width:none;" id="new-user">
+        <h2 style="font-size:1.05rem;">Add a staff member or volunteer</h2>
+        <form asp-action="CreateUser" method="post">
+          <partial name="_ValidationSummary" />
+          <div class="field-row">
+            <div class="field"><label for="nu-first">First name *</label><input id="nu-first" name="NewUser.FirstName" value="@Model.NewUser.FirstName" required maxlength="60" /></div>
+            <div class="field"><label for="nu-last">Last name *</label><input id="nu-last" name="NewUser.LastName" value="@Model.NewUser.LastName" required maxlength="60" /></div>
+          </div>
+          <div class="field"><label for="nu-email">Email *</label><input id="nu-email" type="email" name="NewUser.Email" value="@Model.NewUser.Email" required maxlength="200" /></div>
+          <div class="field"><label for="nu-phone">Phone</label><input id="nu-phone" type="tel" name="NewUser.Phone" value="@Model.NewUser.Phone" maxlength="30" /></div>
+          <div class="field-row">
+            <div class="field"><label for="nu-role">Role</label>
+              <select id="nu-role" name="NewUser.Role">@foreach (var r in Roles.All) { <option selected="@(Model.NewUser.Role == r)">@r</option> }</select>
+            </div>
+            <div class="field"><label for="nu-vrole">Volunteer activity</label>
+              <select id="nu-vrole" name="NewUser.VolunteerRole"><option value="">—</option>@foreach (var a in HourLogForm.Activities) { <option selected="@(Model.NewUser.VolunteerRole == a)">@a</option> }</select>
+            </div>
+          </div>
+          <div class="field"><label for="nu-pass">Temporary password *</label><input id="nu-pass" type="password" name="NewUser.TemporaryPassword" required minlength="8" autocomplete="new-password" />
+            <span class="hint">At least 8 characters with upper- and lowercase letters and a number. Ask them to change it after signing in.</span></div>
+          <button class="btn btn-primary btn-block" type="submit">Create account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

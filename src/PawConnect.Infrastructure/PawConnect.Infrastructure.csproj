@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Infrastructure (data) layer: EF Core + PostgreSQL, repositories, seeding, email/SMS channels. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PawConnect.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.8" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
+    <!-- Security pins: EF Core 8.0.8 pulls these in at versions with published advisories
+         (Caching.Memory 8.0.0: CVE-2024-43483; System.Text.Json < 8.0.5: CVE-2024-43485).
+         Referencing the patched versions directly makes NuGet use them everywhere (CI gate). -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <!-- Real photos for the demo animals (see Data/SeedPhotos/CREDITS.md). Embedded so they work
+       everywhere the app runs: Rider, Docker, Azure, Render and the test suite. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Data\SeedPhotos\*.jpg" LogicalName="SeedPhotos.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PawConnect.Core\PawConnect.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,34 @@
+@model (AnimalForm Form, List<ShelterBranch> Branches, string Prefix)
+@{
+    var f = Model.Form;
+    var p = Model.Prefix;
+}
+<div class="field"><label for="@(p)-name">Name *</label><input id="@(p)-name" name="@(p).Name" value="@f.Name" required maxlength="100" /></div>
+<div class="field-row">
+  <div class="field"><label for="@(p)-species">Species</label>
+    <select id="@(p)-species" name="@(p).Species">@foreach (var s in Enum.GetValues<Species>()) { <option value="@s" selected="@(f.Species == s)">@s</option> }</select>
+  </div>
+  <div class="field"><label for="@(p)-kennel">Kennel number *</label><input id="@(p)-kennel" name="@(p).KennelNumber" type="number" min="1" max="9999" value="@(f.KennelNumber > 0 ? f.KennelNumber : null)" required /></div>
+</div>
+<div class="field-row">
+  <div class="field"><label for="@(p)-breed">Breed</label><input id="@(p)-breed" name="@(p).Breed" value="@f.Breed" maxlength="100" placeholder="e.g. Cross-breed" /></div>
+  <div class="field"><label for="@(p)-age">Age (months)</label><input id="@(p)-age" name="@(p).AgeMonths" type="number" min="0" max="360" value="@f.AgeMonths" /></div>
+</div>
+<div class="field-row">
+  <div class="field"><label for="@(p)-size">Size</label>
+    <select id="@(p)-size" name="@(p).Size">@foreach (var s in Enum.GetValues<AnimalSize>()) { <option value="@s" selected="@(f.Size == s)">@s</option> }</select>
+  </div>
+  <div class="field"><label for="@(p)-intake">Intake date</label><input id="@(p)-intake" name="@(p).IntakeDate" type="date" value="@f.IntakeDate?.ToString("yyyy-MM-dd")" /></div>
+</div>
+@if (Model.Branches.Count > 1)
+{
+  <div class="field"><label for="@(p)-branch">Branch</label>
+    <select id="@(p)-branch" name="@(p).BranchId">@foreach (var b in Model.Branches) { <option value="@b.Id" selected="@(f.BranchId == b.Id)">@b.Name</option> }</select>
+  </div>
+}
+<div class="field checks">
+  <label class="check"><input type="checkbox" name="@(p).IsVaccinated" value="true" checked="@f.IsVaccinated" /> Vaccinated</label>
+  <label class="check"><input type="checkbox" name="@(p).GoodWithKids" value="true" checked="@f.GoodWithKids" /> Good with kids</label>
+  <label class="check"><input type="checkbox" name="@(p).GoodWithOtherPets" value="true" checked="@f.GoodWithOtherPets" /> Good with other pets</label>
+</div>
+<div class="field"><label for="@(p)-bio">Short bio</label><textarea id="@(p)-bio" name="@(p).Bio" maxlength="2000" placeholder="A sentence or two for the adoption listing…">@f.Bio</textarea></div>

@@ -1,0 +1,60 @@
+@model EditAnimalVm
+@{ ViewBag.Title = "Edit " + Model.Form.Name; }
+<div class="page-head"><div class="wrap">
+  <a class="breadcrumb" href="/Admin/Animals">← All animals</a>
+  <h1>@Model.Form.Name</h1>
+</div></div>
+<partial name="_AdminSubNav" />
+<div class="content wrap">
+  <div class="panel-grid">
+    <div>
+      <div class="form-card" style="max-width:none;">
+        <form asp-action="EditAnimal" method="post">
+          <partial name="_ValidationSummary" />
+          <input type="hidden" name="Form.Id" value="@Model.Form.Id" />
+          <partial name="_AnimalFields" model='(Model.Form, Model.Branches, "Form")' />
+          <div class="cta-row">
+            <button class="btn btn-primary" type="submit">Save details</button>
+            <a class="btn btn-ghost" href="/Home/Profile/@Model.Form.Id">View public profile</a>
+            <a class="btn btn-ghost" href="/Home/Profile/@Model.Form.Id#medical">Medical history</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div>
+      <div class="form-card" style="max-width:none;">
+        <h2 style="font-size:1.05rem;">Status</h2>
+        <form asp-action="SetAnimalStatus" method="post" class="status-form">
+          <input type="hidden" name="id" value="@Model.Form.Id" />
+          <input type="hidden" name="returnTo" value="edit" />
+          <select name="status" aria-label="Status">@foreach (var st in Enum.GetValues<AnimalStatus>().Where(x => x != AnimalStatus.Pending || Model.Status == AnimalStatus.Pending)) { <option value="@st" selected="@(Model.Status == st)">@st</option> }</select>
+          <button class="btn btn-ink btn-sm" type="submit">Save</button>
+        </form>
+      </div>
+      <div class="form-card" style="max-width:none;margin-top:16px;">
+        <h2 style="font-size:1.05rem;">Photos</h2>
+        @if (Model.Photos.Count == 0) { <p class="hint">No photos yet. The listing shows a coloured placeholder until you add one.</p> }
+        <div class="photo-grid">
+          @foreach (var ph in Model.Photos)
+          {
+            <figure>
+              <img src="/media/photos/@ph.Id" alt="Photo of @Model.Form.Name" />
+              <figcaption>
+                @if (ph.IsPrimary) { <span class="stamp stamp-available">Main</span> }
+                <form asp-action="DeletePhoto" method="post" data-confirm="Remove this photo?">
+                  <input type="hidden" name="id" value="@Model.Form.Id" /><input type="hidden" name="photoId" value="@ph.Id" />
+                  <button class="btn btn-ghost btn-sm" type="submit">Remove</button>
+                </form>
+              </figcaption>
+            </figure>
+          }
+        </div>
+        <form asp-action="UploadPhoto" method="post" enctype="multipart/form-data" style="margin-top:12px;">
+          <input type="hidden" name="id" value="@Model.Form.Id" />
+          <div class="field"><label for="photo">Add a photo (JPEG, PNG or WebP, max 2 MB)</label><input id="photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" required /></div>
+          <button class="btn btn-ink btn-block" type="submit">Upload</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

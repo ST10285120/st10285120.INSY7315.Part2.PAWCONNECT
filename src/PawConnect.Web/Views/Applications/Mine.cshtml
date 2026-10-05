@@ -1,0 +1,51 @@
+@model List<AdoptionApplication>
+@{
+    ViewBag.Title = "My applications";
+    var photoIds = ViewBag.PhotoIds as Dictionary<Guid, Guid> ?? new();
+    ApplicationStatus[] stages = { ApplicationStatus.Submitted, ApplicationStatus.UnderReview, ApplicationStatus.Approved, ApplicationStatus.Adopted };
+}
+<div class="page-head"><div class="wrap"><h1>My applications</h1></div></div>
+<div class="content wrap">
+  @if (Model.Count == 0)
+  {
+    <div class="empty-hint">
+      You haven't submitted any applications yet.
+      <a class="btn btn-primary btn-sm" style="margin-left:10px;" href="/Home/Browse?available=true">Browse animals</a>
+    </div>
+  }
+  @foreach (var app in Model)
+  {
+    var animal = app.Animal;
+    var stageIdx = Array.IndexOf(stages, app.Status);
+    <div class="app-row">
+      @if (animal != null) { <partial name="_AnimalPhoto" model="(animal, photoIds.TryGetValue(animal.Id, out var pid) ? pid : (Guid?)null, false)" /> }
+      <div class="who">
+        <strong><a href="/Home/Profile/@app.AnimalId">@(animal?.Name ?? "—")</a></strong><br />
+        <span class="mono" style="font-size:.78rem;color:var(--ink-soft);">@app.ReferenceNumber · @ShelterTime.ToLocal(app.SubmittedAt).ToString("d MMM yyyy")</span>
+      </div>
+      @if (app.Status is ApplicationStatus.Rejected or ApplicationStatus.Withdrawn)
+      {
+        <div>
+          <span class="stamp stamp-rejected">@(app.Status == ApplicationStatus.Rejected ? "Not approved" : "Withdrawn")</span>
+          @if (!string.IsNullOrWhiteSpace(app.ReviewNotes) && app.Status == ApplicationStatus.Rejected) { <p class="hint" style="margin:6px 0 0;">@app.ReviewNotes</p> }
+        </div>
+      }
+      else
+      {
+        <ol class="track" aria-label="Application progress">
+          @for (int i = 0; i < stages.Length; i++)
+          {
+            var cls = i < stageIdx ? "done" : (i == stageIdx ? "now" : "");
+            <li class="node @cls" aria-current="@(i == stageIdx ? "step" : null)"><div class="bar"></div><div class="dot"></div><div class="lbl">@stages[i].Label()</div></li>
+          }
+        </ol>
+      }
+      @if (app.IsActive)
+      {
+        <form method="post" asp-action="Withdraw" asp-route-id="@app.Id" data-confirm="Withdraw your application for @(animal?.Name)?">
+          <button type="submit" class="btn btn-ghost btn-sm">Withdraw</button>
+        </form>
+      }
+    </div>
+  }
+</div>

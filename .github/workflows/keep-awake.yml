@@ -1,0 +1,20 @@
+# Optional, for demo week on Render's free tier: free services sleep after 15 minutes idle and take
+# about a minute to wake. This pings production every 10 minutes during the day (SAST) so it's awake
+# when the lecturer opens it. Turn it on by setting the repository variable KEEP_AWAKE to 'true'.
+# One always-on service uses about 720 of the 750 free instance hours a month.
+name: Keep production awake
+
+on:
+  schedule:
+    - cron: "*/10 5-20 * * *" # every 10 minutes, 07:00-22:59 SAST (05:00-20:59 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    if: vars.KEEP_AWAKE == 'true' && vars.RENDER_PRODUCTION_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --max-time 90 "${{ vars.RENDER_PRODUCTION_URL }}/health"

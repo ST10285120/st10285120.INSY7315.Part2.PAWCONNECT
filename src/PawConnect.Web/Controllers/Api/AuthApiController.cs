@@ -25,7 +25,10 @@ public class AuthApiController : ApiControllerBase
         _users = users;
     }
 
-    /// <summary>Exchanges email + password for a bearer token (for API clients and testing).</summary>
+    /// <summary>
+    /// Exchanges email + password (+ an authenticator code when two-step verification is on) for a
+    /// bearer token, for API clients and testing.
+    /// </summary>
     [HttpPost("token"), AllowAnonymous, EnableRateLimiting("auth")]
     public async Task<IActionResult> Token(TokenRequest request)
     {
@@ -41,6 +44,15 @@ public class AuthApiController : ApiControllerBase
 
         _signIn.AuthenticationScheme = IdentityConstants.BearerScheme;
         var result = await _signIn.PasswordSignInAsync(request.Email, request.Password, isPersistent: false, lockoutOnFailure: true);
+        if (result.RequiresTwoFactor)
+        {
+            // Password was right and the account uses two-step verification: the code is needed too.
+            if (string.IsNullOrWhiteSpace(request.TwoFactorCode))
+                return Problem(title: "Two-step verification code required.", statusCode: 401,
+                    detail: "Send the 6-digit code from your authenticator app as twoFactorCode.");
+            result = await _signIn.TwoFactorAuthenticatorSignInAsync(
+                request.TwoFactorCode.Replace(" ", ""), isPersistent: false, rememberClient: false);
+        }
         if (!result.Succeeded)
             return Problem(title: result.IsLockedOut ? "Account locked. Try again in 15 minutes." : "Incorrect email or password.", statusCode: 401);
         return new EmptyResult(); // the bearer handler has already written { accessToken, expiresIn, refreshToken }

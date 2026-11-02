@@ -1,0 +1,61 @@
+@model TwoFactorVm
+@{ ViewBag.Title = "Two-step verification"; }
+<div class="page-head"><div class="wrap"><h1>Two-step verification</h1><p class="page-lede">A code from your phone as well as your password, so a stolen password alone can't open your account.</p></div></div>
+<div class="content wrap">
+  @if (Model.NewRecoveryCodes is { Length: > 0 })
+  {
+    <div class="info-card mb-20" role="status">
+      <h2 class="title-sm">Save your recovery codes</h2>
+      <p>If you lose your phone, each of these codes lets you log in once. Store them somewhere safe, such as a password manager. They won't be shown again.</p>
+      <ul class="recovery-codes mono">
+        @foreach (var c in Model.NewRecoveryCodes) { <li>@c</li> }
+      </ul>
+    </div>
+  }
+
+  @if (Model.IsEnabled)
+  {
+    <div class="form-card full-width">
+      <h2 class="title-sm">Two-step verification is on</h2>
+      <p>You'll be asked for a code from your authenticator app each time you log in. Recovery codes left: <strong>@Model.RecoveryCodesLeft</strong>.</p>
+      <div class="cta-row">
+        <form asp-action="NewRecoveryCodes" method="post"><button class="btn btn-ghost btn-sm" type="submit">Create new recovery codes</button></form>
+        @if (!Model.IsRequired)
+        {
+          <form asp-action="DisableTwoFactor" method="post" data-confirm="Turn off two-step verification?"><button class="btn btn-ghost btn-sm" type="submit">Turn off</button></form>
+        }
+        else
+        {
+          <p class="hint">Administrators must keep two-step verification on.</p>
+        }
+      </div>
+    </div>
+  }
+  else
+  {
+    @if (Model.IsRequired)
+    {
+      <div class="info-card mb-20" role="alert"><strong>Required for administrators.</strong> Set this up to open the shelter dashboard.</div>
+    }
+    <form class="form-card full-width" asp-action="EnableTwoFactor" method="post">
+      <partial name="_ValidationSummary" />
+      <h2 class="title-sm">Set it up in three steps</h2>
+      <ol class="setup-steps">
+        <li>Install an authenticator app on your phone, such as Microsoft Authenticator or Google Authenticator.</li>
+        <li>
+          In the app, choose <em>add account</em>, then <em>enter a setup key</em>, and type this key:
+          <div class="setup-key mono" aria-label="Setup key">@Model.SharedKey</div>
+          <span class="hint">On this phone already? <a href="@Model.AuthenticatorUri">Open it in your authenticator app</a>.</span>
+        </li>
+        <li>Enter the 6-digit code the app shows for PawConnect.</li>
+      </ol>
+      <div class="field">
+        <label asp-for="Code"></label>
+        <input asp-for="Code" autocomplete="one-time-code" inputmode="numeric" />
+        <span asp-validation-for="Code" class="field-error"></span>
+      </div>
+      <button class="btn btn-primary" type="submit">Turn on two-step verification</button>
+    </form>
+  }
+  <p class="hint mt-20"><a href="/Account/Me">Back to my account</a></p>
+</div>

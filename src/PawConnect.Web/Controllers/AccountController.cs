@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -20,11 +22,15 @@ public class AccountController : Controller
     private readonly IHourLogRepository _hours;
     private readonly IClock _clock;
     private readonly ILogger<AccountController> _logger;
+    private readonly IConfiguration _config;
+    private readonly IWebHostEnvironment _env;
 
     public AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
         IDonationRepository donations, IApplicationRepository applications, IHourLogRepository hours,
-        IClock clock, ILogger<AccountController> logger)
+        IClock clock, ILogger<AccountController> logger, IConfiguration config, IWebHostEnvironment env)
     {
+        _config = config;
+        _env = env;
         _users = users;
         _signIn = signIn;
         _donations = donations;
@@ -62,6 +68,11 @@ public class AccountController : Controller
             TempData["Toast"] = $"Welcome back{(user != null ? ", " + user.FirstName : "")}!";
             return LocalRedirect(SafeReturnUrl(vm.ReturnUrl) ?? await HomeFor(user!));
         }
+        if (result.RequiresTwoFactor)
+        {
+            // Password was right; Identity has remembered who is signing in. Now ask for the code.
+            return RedirectToAction(nameof(LoginWith2fa), new { returnUrl = SafeReturnUrl(vm.ReturnUrl), rememberMe = vm.RememberMe });
+        }
         if (result.IsLockedOut)
         {
             _logger.LogWarning("Account locked out for {Email}", vm.Email);
@@ -73,6 +84,142 @@ public class AccountController : Controller
             ModelState.AddModelError("", "Incorrect email or password.");
         }
         return View(vm);
+    }
+
+    // ---------- Two-step verification (TOTP authenticator app) ----------
+
+    [HttpGet]
+    public async Task<IActionResult> LoginWith2fa(string? returnUrl, bool rememberMe)
+    {
+        // Only reachable straight after a correct password for an account with two-step verification.
+        if (await _signIn.GetTwoFactorAuthenticationUserAsync() == null) return RedirectToAction(nameof(Login));
+        return View(new LoginWith2faVm { ReturnUrl = returnUrl, RememberMe = rememberMe });
+    }
+
+    [HttpPost, EnableRateLimiting("auth")]
+    public async Task<IActionResult> LoginWith2fa(LoginWith2faVm vm)
+    {
+        var user = await _signIn.GetTwoFactorAuthenticationUserAsync();
+        if (user == null) return RedirectToAction(nameof(Login));
+        if (!ModelState.IsValid) return View(vm);
+
+        var code = vm.Code.Replace(" ", "").Replace("-", "").Trim();
+        // 6 digits = authenticator app; anything else is treated as one of the single-use recovery codes.
+        var result = code.Length == 6 && code.All(char.IsDigit)
+            ? await _signIn.TwoFactorAuthenticatorSignInAsync(code, vm.RememberMe, rememberClient: false)
+            : await _signIn.TwoFactorRecoveryCodeSignInAsync(vm.Code.Replace(" ", "").Trim());
+
+        if (result.Succeeded)
+        {
+            _logger.LogInformation("User {UserId} signed in with two-step verification", user.Id);
+            TempData["Toast"] = $"Welcome back, {user.FirstName}!";
+            return LocalRedirect(SafeReturnUrl(vm.ReturnUrl) ?? await HomeFor(user));
+        }
+        if (result.IsLockedOut)
+        {
+            _logger.LogWarning("Account {UserId} locked out at the verification step", user.Id);
+            ModelState.AddModelError("", "Too many failed attempts. Your account is locked for 15 minutes.");
+        }
+        else
+        {
+            ModelState.AddModelError(nameof(vm.Code), "That code didn't work. Codes change every 30 seconds, so try the current one.");
+        }
+        return View(vm);
+    }
+
+    [Authorize, HttpGet]
+    public async Task<IActionResult> TwoFactor()
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return Challenge();
+        return View(await BuildTwoFactorVm(user));
+    }
+
+    [Authorize, HttpPost]
+    public async Task<IActionResult> EnableTwoFactor(TwoFactorVm vm)
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return Challenge();
+        if (!ModelState.IsValid) return View(nameof(TwoFactor), await BuildTwoFactorVm(user));
+
+        var code = vm.Code.Replace(" ", "").Trim();
+        var valid = await _users.VerifyTwoFactorTokenAsync(user, _users.Options.Tokens.AuthenticatorTokenProvider, code);
+        if (!valid)
+        {
+            ModelState.AddModelError(nameof(vm.Code), "That code didn't match. Check the key was entered correctly and try the current code.");
+            return View(nameof(TwoFactor), await BuildTwoFactorVm(user));
+        }
+
+        await _users.SetTwoFactorEnabledAsync(user, true);
+        var recovery = await _users.GenerateNewTwoFactorRecoveryCodesAsync(user, 8);
+        await _signIn.RefreshSignInAsync(user); // adds the 2FA claim, so the admin area opens straight away
+        _logger.LogInformation("User {UserId} turned on two-step verification", user.Id);
+
+        var fresh = await BuildTwoFactorVm(user);
+        fresh.NewRecoveryCodes = recovery?.ToArray();
+        TempData["Toast"] = "Two-step verification is on.";
+        return View(nameof(TwoFactor), fresh);
+    }
+
+    [Authorize, HttpPost]
+    public async Task<IActionResult> NewRecoveryCodes()
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return Challenge();
+        if (!user.TwoFactorEnabled) return RedirectToAction(nameof(TwoFactor));
+        var vm = await BuildTwoFactorVm(user);
+        vm.NewRecoveryCodes = (await _users.GenerateNewTwoFactorRecoveryCodesAsync(user, 8))?.ToArray();
+        vm.RecoveryCodesLeft = vm.NewRecoveryCodes?.Length ?? 0;
+        TempData["Toast"] = "New recovery codes created. The old ones no longer work.";
+        return View(nameof(TwoFactor), vm);
+    }
+
+    [Authorize, HttpPost]
+    public async Task<IActionResult> DisableTwoFactor()
+    {
+        var user = await _users.GetUserAsync(User);
+        if (user == null) return Challenge();
+        if (await IsTwoFactorRequiredFor(user))
+        {
+            TempData["Toast"] = "Administrators must keep two-step verification on.";
+            return RedirectToAction(nameof(TwoFactor));
+        }
+        await _users.SetTwoFactorEnabledAsync(user, false);
+        await _users.ResetAuthenticatorKeyAsync(user); // an old phone can't be used if it is turned on again
+        await _signIn.RefreshSignInAsync(user);
+        _logger.LogInformation("User {UserId} turned off two-step verification", user.Id);
+        TempData["Toast"] = "Two-step verification is off.";
+        return RedirectToAction(nameof(TwoFactor));
+    }
+
+    private async Task<TwoFactorVm> BuildTwoFactorVm(ApplicationUser user)
+    {
+        var key = await _users.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrEmpty(key))
+        {
+            await _users.ResetAuthenticatorKeyAsync(user);
+            key = await _users.GetAuthenticatorKeyAsync(user) ?? "";
+        }
+        return new TwoFactorVm
+        {
+            IsEnabled = user.TwoFactorEnabled,
+            IsRequired = await IsTwoFactorRequiredFor(user),
+            SharedKey = FormatKey(key),
+            AuthenticatorUri = string.Format("otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6",
+                UrlEncoder.Default.Encode("PawConnect"), UrlEncoder.Default.Encode(user.Email ?? ""), key),
+            RecoveryCodesLeft = user.TwoFactorEnabled ? await _users.CountRecoveryCodesAsync(user) : 0
+        };
+    }
+
+    private async Task<bool> IsTwoFactorRequiredFor(ApplicationUser user) =>
+        RequireAdminTwoFactorFilter.IsRequired(_config, _env) && await _users.IsInRoleAsync(user, Roles.Administrator);
+
+    private static string FormatKey(string key)
+    {
+        var sb = new StringBuilder();
+        for (var i = 0; i < key.Length; i += 4)
+            sb.Append(key.AsSpan(i, Math.Min(4, key.Length - i))).Append(' ');
+        return sb.ToString().TrimEnd().ToLowerInvariant();
     }
 
     [HttpGet]

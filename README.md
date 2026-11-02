@@ -252,6 +252,7 @@ This creates App Service, PostgreSQL Flexible Server, Key Vault, Application Ins
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure deployment, pipeline setup, email and troubleshooting |
 | [docs/DEPLOYMENT-FREE.md](docs/DEPLOYMENT-FREE.md) | Free alternative: Render + Neon with the same pipeline |
 | [docs/user-guide/PawConnect_User_Guide.docx](docs/user-guide/PawConnect_User_Guide.docx) | User Guide for adopters, volunteers, administrators and the technical volunteer, with annotated screenshots, setup and FAQ |
+| [docs/presentation/PawConnect_EXPO_Presentation.pptx](docs/presentation/PawConnect_EXPO_Presentation.pptx) | Task 3 EXPO deck with speaker notes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Git workflow, commit convention and PR rules |
 
 

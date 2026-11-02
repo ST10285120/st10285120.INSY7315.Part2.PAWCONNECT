@@ -37,8 +37,8 @@
       {
         <span class="badge badge-warn" title="Vaccination course in progress">Vaccinations in progress</span>
       }
-      <h2 style="margin-top:10px;">@a.Name</h2>
-      <p style="color:var(--ink-soft);">@a.Bio</p>
+      <h2 class="mt-10">@a.Name</h2>
+      <p class="text-soft">@a.Bio</p>
       <div class="vitals">
         <div><span>Species</span>@a.Species</div>
         <div><span>Breed</span>@(a.Breed ?? "Unknown")</div>
@@ -75,14 +75,14 @@
     @* Medical history is staff-only. It's loaded from GET /api/animals/{id}?include=history and
        new records are posted to POST /api/medical-records (design doc, section 4.2). *@
     <section class="medical" id="medical" data-medical data-animal-id="@a.Id">
-      <div class="section-head"><h2 style="font-size:1.3rem;">Medical history</h2></div>
+      <div class="section-head"><h2 class="title-xl">Medical history</h2></div>
       <div class="panel-grid">
         <div>
           <ol class="timeline" id="medicalList" aria-live="polite"><li class="hint">Loading medical history…</li></ol>
         </div>
         <div>
-          <form class="form-card" style="max-width:none;" id="medicalForm" novalidate>
-            <h2 style="font-size:1.05rem;">Log a medical record</h2>
+          <form class="form-card full-width" id="medicalForm" novalidate>
+            <h2 class="title-sm">Log a medical record</h2>
             <div class="field"><label for="m-type">Type</label>
               <select id="m-type" name="recordType">
                 @foreach (var t in Enum.GetValues<MedicalRecordType>()) { <option value="@t">@t</option> }

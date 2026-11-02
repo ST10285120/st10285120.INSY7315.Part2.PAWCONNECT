@@ -65,8 +65,21 @@ public static class DependencyInjection
             services.AddSingleton<INotificationStrategy, SmtpEmailStrategy>();
         else
             services.AddSingleton<INotificationStrategy, LogOnlyEmailStrategy>();
-        if (config.GetValue<bool>("Notifications:Sms:Enabled"))
+        var sms = config.GetSection("Notifications:Sms").Get<SmsOptions>() ?? new SmsOptions();
+        services.AddSingleton(sms);
+        if (sms.Enabled && sms.UsesTwilio)
+        {
+            services.AddHttpClient(TwilioSmsStrategy.HttpClientName, c =>
+            {
+                c.BaseAddress = new Uri("https://api.twilio.com/");
+                c.Timeout = TimeSpan.FromSeconds(10); // a slow provider must not hold up the retry loop
+            });
+            services.AddSingleton<INotificationStrategy, TwilioSmsStrategy>();
+        }
+        else if (sms.Enabled)
+        {
             services.AddSingleton<INotificationStrategy, LogOnlySmsStrategy>();
+        }
         services.AddSingleton<NotificationStrategySelector>();
         services.AddScoped<NotificationService>();
         if (config.GetValue("Notifications:Background", true))

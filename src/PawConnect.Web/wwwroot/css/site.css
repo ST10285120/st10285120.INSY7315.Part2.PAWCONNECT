@@ -488,3 +488,61 @@ ol.track{list-style:none; padding:0; margin:0;}
 .info-card h2{font-size:1.6rem;}
 /* Visible keyboard focus on everything interactive (already global via :focus-visible), plus tables that scroll. */
 .table-scroll:focus-visible{outline:3px solid var(--marigold); outline-offset:2px;}
+
+/* ---------- utilities ----------
+   Small single-purpose classes that replace the inline style="" attributes the views used to carry
+   (Task 2 feedback), so every spacing and type size comes from this one stylesheet.
+   They use !important on purpose: like the inline styles they replace, a utility must win over
+   the component rule it adjusts (e.g. .form-card's max-width). Only data-driven values stay
+   inline: chart bar heights and each animal's placeholder gradient. */
+.page-lede{margin:0 !important; opacity:.85;}
+.full-width{max-width:none !important;}
+.max-w-220{max-width:220px !important;}
+
+.title-xl{font-size:1.3rem !important;}
+.title-lg{font-size:1.2rem !important;}
+.title-md{font-size:1.15rem !important;}
+.title-sm{font-size:1.05rem !important;}
+.title-xs{font-size:1rem !important;}
+.text-sm{font-size:.82rem !important;}
+.text-xs{font-size:.78rem !important;}
+.leading-loose{line-height:1.7 !important;}
+
+.text-soft{color:var(--ink-soft) !important;}
+.text-accent{color:var(--marigold) !important;}
+.text-on-dark{color:var(--kraft-light) !important; opacity:.9;}
+.muted{opacity:.75;}
+.text-center{text-align:center !important;}
+.nowrap{white-space:nowrap !important;}
+
+.inline{display:inline !important;}
+.inline-row{display:inline-flex !important; gap:6px;}
+.row-center{display:flex !important; align-items:center; gap:12px;}
+.row-between{display:flex !important; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;}
+.items-start{align-items:start !important;}
+.self-end{align-self:flex-end !important;}
+.justify-center{justify-content:center !important;}
+
+.m-0{margin:0 !important;}
+.pt-0{padding-top:0 !important;}
+.mt-n8{margin-top:-8px !important;}
+.mt-2{margin:2px 0 0 !important;}
+.mt-6{margin:6px 0 0 !important;}
+.mt-10{margin-top:10px !important;}
+.mt-12{margin-top:12px !important;}
+.mt-14{margin-top:14px !important;}
+.mt-16{margin-top:16px !important;}
+.mt-20{margin-top:20px !important;}
+.mt-28{margin-top:28px !important;}
+.mt-36{margin-top:36px !important;}
+.mt-40{margin-top:40px !important;}
+.mb-6{margin-bottom:6px !important;}
+.mb-20{margin-bottom:20px !important;}
+.mr-4{margin-right:4px !important;}
+.ml-6{margin-left:6px !important;}
+.ml-10{margin-left:10px !important;}
+/* ---------- two-step verification ---------- */
+.setup-steps{padding-left:1.2em; margin:0 0 18px;}
+.setup-steps li{margin-bottom:12px;}
+.setup-key{display:inline-block; margin:8px 0 4px; padding:8px 12px; background:var(--kraft-light); border:1px dashed var(--ink-soft); border-radius:var(--radius); font-size:1.05rem; letter-spacing:.06em; word-break:break-all;}
+.recovery-codes{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px 18px; list-style:none; padding:0; margin:12px 0 0;}

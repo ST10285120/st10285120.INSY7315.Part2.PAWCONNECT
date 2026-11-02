@@ -146,7 +146,29 @@ Without these settings, emails are written to the log and to the `Notifications`
 | Symptom | Fix |
 |---|---|
 | 500.30 / app won't start | App Service → **Log stream**. Usually the Key Vault reference hasn't resolved yet (wait a minute after deployment, or check the managed identity has *Key Vault Secrets User*) |
-| `Database` unhealthy | PostgreSQL → Networking: *Allow public access from any Azure service* must be on |
+| 500.30 and you can't see why | **Advanced Tools → Go → Debug console → CMD**, then `cd site\wwwroot` and `dotnet PawConnect.Web.dll` (Windows plan) prints the real start-up error. "Address already in use" there means the app itself started fine |
+| `Failed to connect to <ip>:5432 … timed out` | PostgreSQL → **Networking**: add firewall rules for the web app's **Outbound IP addresses** (web app → Properties), then **Stop → Start** the app |
+| Deploy uploads, then "Wait until this build is running" times out | The app's address isn't `<name>.azurewebsites.net`: copy the **Default domain** from the app's Overview into the variables `AZURE_WEBAPP_URL` / `AZURE_WEBAPP_URL_STAGING` (with `https://`) |
+| `Database` unhealthy | PostgreSQL → Networking: *Allow public access from any Azure service* must be on, or the app's outbound IPs added as firewall rules |
 | Slot swap step fails | You're on F1 or B1: set `USE_DEPLOYMENT_SLOTS=false` and `AZURE_WEBAPP_NAME_STAGING=<app>-staging` (the setup script does this), or scale the plan to S1 |
 | F1: site slow or "quota exceeded" | The free plan sleeps when idle and has 60 CPU minutes a day. Scale up to B1/S1 for the demo |
 | Login fails in the pipeline | Check the federated credential subjects match your repo name and branch or environment exactly |
+
+## Text messages (SMS)
+
+Urgent notifications (shift sign-up confirmations and reminders) go by SMS first and fall back to email. SMS is off until you configure it:
+
+1. Create a Twilio account and buy (or, on a trial, verify) a number that can text South African mobiles.
+2. Put the auth token in Key Vault and add these App Service settings for **production** (mark them as deployment-slot settings):
+
+| Setting | Value |
+|---|---|
+| `Notifications__Sms__Enabled` | `true` |
+| `Notifications__Sms__Provider` | `Twilio` |
+| `Notifications__Sms__AccountSid` | your Account SID (starts with `AC`) |
+| `Notifications__Sms__AuthToken` | `@Microsoft.KeyVault(SecretUri=https://<vault>.vault.azure.net/secrets/twilio-auth-token/)` |
+| `Notifications__Sms__FromNumber` | your Twilio number, e.g. `+27...` (or set `MessagingServiceSid` instead) |
+
+Leave staging on `Provider = Log`, so test sign-ups never text real people. Every attempt (SMS or email, sent or failed) is recorded in the Notifications table. Phone numbers are masked in the logs.
+
+Why Twilio: Azure Communication Services can't send SMS to South African numbers. Twilio is pay as you go, and the app only texts urgent shift messages, so the cost stays inside the budget in design doc section 9.

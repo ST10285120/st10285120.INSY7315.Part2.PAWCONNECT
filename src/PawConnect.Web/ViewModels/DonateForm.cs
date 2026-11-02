@@ -7,8 +7,6 @@ using PawConnect.Core.Services;
 
 namespace PawConnect.Web.ViewModels;
 
-// ---------- Donations ----------
-
 public class DonateForm
 {
     [Range(typeof(decimal), "10", "100000", ErrorMessage = "Please enter an amount between R10 and R100,000.")]

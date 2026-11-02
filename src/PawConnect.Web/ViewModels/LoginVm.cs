@@ -7,8 +7,6 @@ using PawConnect.Core.Services;
 
 namespace PawConnect.Web.ViewModels;
 
-// ---------- Account ----------
-
 public class LoginVm
 {
     [Required, EmailAddress, Display(Name = "Email address")]

@@ -7,6 +7,4 @@ using PawConnect.Core.Services;
 
 namespace PawConnect.Web.ViewModels;
 
-// ---------- Public pages ----------
-
 public record AnimalCardVm(Animal Animal, Guid? PhotoId, DateOnly Today);

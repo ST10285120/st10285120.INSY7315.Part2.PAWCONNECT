@@ -7,8 +7,6 @@ using PawConnect.Core.Services;
 
 namespace PawConnect.Web.ViewModels;
 
-// ---------- Adoption application ----------
-
 public class ApplicationForm
 {
     public Guid AnimalId { get; set; }

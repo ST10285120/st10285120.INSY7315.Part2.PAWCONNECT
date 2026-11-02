@@ -7,8 +7,6 @@ using PawConnect.Core.Services;
 
 namespace PawConnect.Web.ViewModels;
 
-// ---------- Administrator ----------
-
 public class AdminDashboardVm
 {
     public required DashboardStats Stats { get; init; }

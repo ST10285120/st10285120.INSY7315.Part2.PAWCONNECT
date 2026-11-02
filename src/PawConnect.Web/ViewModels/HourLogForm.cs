@@ -7,8 +7,6 @@ using PawConnect.Core.Services;
 
 namespace PawConnect.Web.ViewModels;
 
-// ---------- Volunteer ----------
-
 public class HourLogForm
 {
     [Required]

@@ -3,7 +3,7 @@
 <div class="content wrap">
   <div class="confirm-box receipt">
     <div class="big-stamp">♥ Thank you</div>
-    <p style="color:var(--ink-soft);">Receipt number</p>
+    <p class="text-soft">Receipt number</p>
     <div class="ref-no">@Model.ReceiptNumber</div>
     <dl class="receipt-lines">
       <dt>Date</dt><dd>@ShelterTime.ToLocal(Model.IssuedAtUtc).ToString("d MMMM yyyy")</dd>
@@ -12,7 +12,7 @@
       <dt>For</dt><dd>@Model.Description</dd>
     </dl>
     <p class="hint">@Model.StatusLine</p>
-    <div class="cta-row" style="justify-content:center;">
+    <div class="cta-row justify-center">
       <button type="button" class="btn btn-ghost" data-print>Print receipt</button>
       <a class="btn btn-primary" href="/Account/Me#donations">My donations</a>
     </div>

@@ -1,6 +1,6 @@
 @model AdminAnimalsVm
 @{ ViewBag.Title = "Manage animals"; }
-<div class="page-head"><div class="wrap"><h1>Manage animals</h1><p style="margin:0;opacity:.85;">Update intake status or add a new arrival.</p></div></div>
+<div class="page-head"><div class="wrap"><h1>Manage animals</h1><p class="page-lede">Update intake status or add a new arrival.</p></div></div>
 <partial name="_AdminSubNav" />
 <div class="content wrap">
   <div class="panel-grid">
@@ -33,8 +33,8 @@
     </div>
 
     <div>
-      <div class="form-card" style="max-width:none;">
-        <h2 style="font-size:1.05rem;">Record a new arrival</h2>
+      <div class="form-card full-width">
+        <h2 class="title-sm">Record a new arrival</h2>
         <form asp-action="AddAnimal" method="post">
           <partial name="_ValidationSummary" />
           <partial name="_AnimalFields" model='(Model.NewAnimal, Model.Branches, "NewAnimal")' />

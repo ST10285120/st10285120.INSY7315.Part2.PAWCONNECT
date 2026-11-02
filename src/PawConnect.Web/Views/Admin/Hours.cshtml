@@ -3,7 +3,7 @@
     ViewBag.Title = "Volunteer hours";
     var max = Model.ChartData.Count > 0 ? Math.Max(1m, Model.ChartData.Max(c => c.Hours)) : 1m;
 }
-<div class="page-head"><div class="wrap"><h1>Volunteer hours</h1><p style="margin:0;opacity:.85;">Review logged hours and keep an accurate record for funder reporting.</p></div></div>
+<div class="page-head"><div class="wrap"><h1>Volunteer hours</h1><p class="page-lede">Review logged hours and keep an accurate record for funder reporting.</p></div></div>
 <partial name="_AdminSubNav" />
 <div class="content wrap">
   <div class="panel-grid">
@@ -40,11 +40,11 @@
               <td>@log.Activity</td>
               <td class="mono">@log.Hours.ToString("0.##")h</td>
               <td><span class="stamp stamp-@(log.Status.ToString().ToLower())">@log.Status</span></td>
-              <td style="max-width:220px;color:var(--ink-soft);font-size:.82rem;">@log.Notes</td>
+              <td class="max-w-220 text-soft text-sm">@log.Notes</td>
               <td>
                 @if (log.Status == HourLogStatus.Pending)
                 {
-                  <form asp-action="DecideHours" method="post" style="display:inline-flex;gap:6px;">
+                  <form class="inline-row" asp-action="DecideHours" method="post">
                     <input type="hidden" name="id" value="@log.Id" />
                     <input type="hidden" name="volunteerId" value="@Model.SelectedVolunteerId" />
                     <input type="hidden" name="status" value="@Model.SelectedStatus" />
@@ -63,8 +63,8 @@
     <div>
       <div class="mini-stat"><div class="num">@Model.ApprovedThisMonth.ToString("0.#")h</div><div class="lbl">Approved hours this month</div></div>
       <div class="mini-stat"><div class="num">@Model.PendingCount</div><div class="lbl">Logs awaiting review</div></div>
-      <div class="form-card" style="max-width:none;margin-top:20px;">
-        <h2 style="font-size:1rem;">Approved hours by volunteer</h2>
+      <div class="form-card full-width mt-20">
+        <h2 class="title-xs">Approved hours by volunteer</h2>
         @if (Model.ChartData.Count == 0) { <p class="hint">No approved hours yet.</p> }
         else
         {

@@ -49,7 +49,7 @@ Every user story, acceptance criterion and non-functional requirement from the T
 | **Usability:** apply in under 5 minutes | Three-step form, pre-filled from the account, autosave, live filters | E2E walkthrough; demo in the presentation |
 | **Scalability:** 1 → 3 branches without redesign | `ShelterBranches` table; animals, shifts and staff carry `BranchId`; volunteers see their branch | Data model (`docs/ARCHITECTURE.md` §4) |
 | **Compatibility:** latest Chrome/Safari/Edge; 360–1920 px | Standards-based HTML/CSS and plain JavaScript (no build step), responsive layout, pages work without JavaScript | Accessibility audit runs at 375 px and 1280 px for every page |
-| **Maintainability:** ≥ 70% test coverage on the API layer | 132 automated tests (incl. 13 on real PostgreSQL); CI publishes a coverage report on every run and **fails below 70%** | `ci.yml` coverage summary and "Enforce minimum line coverage" step |
+| **Maintainability:** ≥ 70% test coverage on the API layer | 151 automated tests (incl. 13 on real PostgreSQL); CI publishes a coverage report on every run and **fails below 70%** | `ci.yml` coverage summary and "Enforce minimum line coverage" step |
 | **Legal / POPIA** | Consent checkbox with timestamp, privacy notice, data minimisation, download my data, no third-party sharing | `AccountTests.Registration_requires_popia_consent…`, `Users_can_download_all_their_data` |
 | **Backup & recovery:** daily, 7-day point-in-time restore, RTO 8 h | Azure PostgreSQL automated backups (`backupRetentionDays: 7`) | `infra/main.bicep` |
 | **Cost:** ≤ R1,500/month | B1ms PostgreSQL, one App Service plan (S1 for blue-green, or B1 / free F1), free Key Vault / Insights tiers, email instead of SMS; a free Render + Neon option | `docs/DEPLOYMENT.md` cost note, `docs/DEPLOYMENT-FREE.md` |
@@ -62,5 +62,5 @@ Every user story, acceptance criterion and non-functional requirement from the T
 | Decision time from 5 days to under 2 days | Review queue on the volunteer dashboard; the report shows **average time to decision** against the 2-day target |
 | Zero shift double bookings | Capacity, duplicate and overlap checks + optimistic concurrency + unique index (`ShiftServiceTests.*`) |
 | Report for any date range in under 10 s | `/Admin/Reports` + CSV export, indexed queries (well under a second locally) |
-| UAT with no critical defects | 132 automated tests + accessibility audit + smoke tests on every deployment |
+| UAT with no critical defects | 151 automated tests + accessibility audit + smoke tests on every deployment |
 | Hosting within R1,500/month | See the cost note in `docs/DEPLOYMENT.md` |

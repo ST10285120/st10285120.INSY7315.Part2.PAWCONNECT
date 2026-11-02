@@ -1,7 +1,7 @@
 # PawConnect 
 
 **Animal shelter adoption and volunteer management platform for Hope & Paws Animal Shelter**
-INSY7315 – Work Integrated Learning · Task 2 
+INSY7315 – Work Integrated Learning · Task 3 (final submission)
 
 PawConnect lets the public browse adoptable animals, apply to adopt online and donate or sponsor an animal. Volunteers review applications, sign up for shifts, log hours and record medical care. The shelter manager handles intake, users, donations and funder reporting.
 
@@ -19,7 +19,7 @@ PawConnect lets the public browse adoptable animals, apply to adopt online and d
 9. [Git workflow & CI/CD](#git-workflow--cicd)
 10. [Hosting on Azure](#hosting-on-azure)
 11. [Documentation & presentation](#documentation--presentation)
-12. [Submission checklist](#submission-checklist)
+12. [What changed for Task 3](#what-changed-for-task-3)
 
 ---
 
@@ -66,8 +66,8 @@ The nine demo animals come with real pet photos stored in `src/PawConnect.Infras
 | | Multi step adoption application with **autosave** prefilled from the account | `/Applications/Apply` |
 | | Track applications and withdraw | `/Applications/Mine` |
 | | Donate or sponsor an animal and get a receipt  | `/Home/Donate` |
-| | Email confirmations | Strategy pattern |
-| | My account: edit details and donation history, **download my data (POPIA)** | `/Account/Me` |
+| | Email confirmations, and SMS (Twilio) for urgent shift messages with email as fallback | Strategy pattern |
+| | My account: edit details and donation history, **download my data (POPIA)**, **two-step verification** | `/Account/Me`, `/Account/TwoFactor` |
 | **Volunteer** | Review applications: start review, approve or reject with a note, home visit and adoption fee | `/Volunteer/Application/{id}` |
 | | Shift roster with sign up / cancel. **No double booking**: capacity, duplicate and overlap checks with optimistic concurrency | `/Volunteer/Dashboard` |
 | | Log volunteer hours | `/Volunteer/Dashboard` |
@@ -129,7 +129,7 @@ PawConnect.sln
 ├── scripts/                        azure-setup.sh, smoke test.sh and wait for version.sh
 ├── render.yaml                     Free hosting blueprint and see docs/DEPLOYMENT-FREE.md
 ├── docs/                           ARCHITECTURE.md, REQUIREMENTS-TRACEABILITY.md, DEPLOYMENT.md, DEPLOYMENT-FREE.md,
-│                                   TASK3-DOC-UPDATES.md, presentation/
+│                                   presentation/
 ├── CONTRIBUTING.md                 Branching, commit and PR rules
 ├── Dockerfile, docker-compose.yml
 └── PawConnect.http                 Ready made API requests for Visual Studio
@@ -151,7 +151,7 @@ JSON over HTTPS. Browser JavaScript authenticates with the login cookie and must
 
 | Method | Endpoint | Who | Purpose |
 |---|---|---|---|
-| POST | `/api/auth/token` | anyone | Email + password → bearer token  |
+| POST | `/api/auth/token` | anyone | Email + password (+ `twoFactorCode` when 2FA is on) → bearer token |
 | GET | `/api/animals?species=&size=&available=&kids=&pets=&search=` | anyone | Search animals |
 | GET | `/api/animals/{id}` | anyone | Animal profile |
 | GET | `/api/animals/{id}?include=history` | volunteer, admin | Profile + medical history |
@@ -179,6 +179,7 @@ Mapped to the OWASP Top 10 table in the design doc:
 
 - **Access control:** role-based `[Authorize]` on every controller plus server side ownership checks and **branch scoping**. Other peoples records answer 404 so ids can't be probed. The UI hides buttons too but the server never relies on that.
 - **Data integrity:** optimistic concurrency on applications, animals and shifts. CHECK constraints and partial unique indexes in PostgreSQL.
+- **Two-step verification (MFA):** any user can add an authenticator app (with single-use recovery codes). It is **required for administrators in production**, and API tokens need the code too.
 - **Authentication:** ASP.NET Core Identity with salted PBKDF2 password hashes and a password policy **lockout after 5 failed attempts**, **rate limiting** on login and register, account deactivation and security stamp revalidation.
 - **CSRF:** anti forgery tokens on every form POST and a header token for cookie authenticated API calls.
 - **Injection / XSS:** EF Core parameterised queries only. Razor HTML encodes output. JS inserts text with `textContent`. CSV export neutralises spreadsheet formulas.
@@ -193,10 +194,10 @@ Mapped to the OWASP Top 10 table in the design doc:
 dotnet test
 ```
 
-There are **132 tests** in `tests/PawConnect.Tests`:
-- **Unit:** the state machine notification strategy selection with retry and fallback. The receipt factory, CSV injection protection, time zone ranges and image detection.
+There are **151 tests** in `tests/PawConnect.Tests`:
+- **Unit:** the state machine, notification strategy selection with retry and fallback, the Twilio SMS channel and phone number formatting. The receipt factory, CSV injection protection, time zone ranges and image detection.
 - **Service:** every business service runs against the real repositories on the EF Core in memory database. Covered: the adoption workflow and its guards, shift booking, hours rules, donations, medical records, animal intake and reports.
-- **Integration:** `WebApplicationFactory` boots the whole app to test API auth, bearer tokens, CSRF enforcement, the full adoption workflow through the API, shift capacity, security headers, admin protection, CSV export and every page rendering for each role. It also covers registration with POPIA consent, data export, account lockout and admin creating and deactivating users.
+- **Integration:** `WebApplicationFactory` boots the whole app to test API auth, bearer tokens, CSRF enforcement, the full adoption workflow through the API, shift capacity, security headers, admin protection, CSV export and every page rendering for each role. It also covers registration with POPIA consent, data export, account lockout, admin creating and deactivating users, and two-step verification (setup, the login code step, API tokens and the admin requirement).
 - **Access control & API errors:** another adopter or another branches volunteer gets 404. Every error is problem+json with the right status code (400/401/404/409)Ddeactivated accounts aren't revealed without the password.
 - **Database (PostgreSQL):** 13 tests build a fresh PostgreSQL database from the real migrations and prove the CHECK constraints, partial unique indexes and concurrency rules with two simultaneous users. Two adopters applying for the last animal, approve vs. withdraw at the same moment a double clicked adoption fee and six volunteers racing for a two place shift. Two more upgrade an old database full of data to check the migration repairs what it safely can and stops with a clear message otherwise. They run in CI; locally they run when `PAWCONNECT_TEST_POSTGRES` is set  and are skipped otherwise.
 - **Accessibility:** `tests/accessibility/axe_audit.py` audits every page for every role at desktop and mobile widths against WCAG 2.1 AA. Current result: **0 violations**.
@@ -208,7 +209,7 @@ CI runs all of them  with code coverage, posts the coverage summary on each work
 **Branching **
 - `main`: production. Protected changes arrive only by PR from `develop`.
 - `develop`: integration branch which deploys automatically to **staging**.
-- `feature/<short-name>` / `fix/<short-name>`: branched from `develop` and merged back through a pull request with at least one review.
+- `feature/<short-name>` / `fix/<short-name>`: branched from `develop` and merged back through a pull request once CI passes. PawConnect is a one-person project, so I review my own pull requests: the required CI checks are the gate, not a second reviewer.
 
 **Branch protection (GitHub → Settings → Branches)**: for `main` and `develop`, tick *Require a pull request before merging*  and *Require status checks to pass* .
 
@@ -216,7 +217,7 @@ CI runs all of them  with code coverage, posts the coverage summary on each work
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` | every PR and feature branch push | restore → build → **132 tests  with coverage** → **≥70% coverage gate** → **vulnerable package scan** → EF migration check against a real PostgreSQL → publish artifact → **accessibility audit (WCAG 2.1 AA)** |
+| `ci.yml` | every PR and feature branch push | restore → build → **151 tests with coverage** → **≥70% coverage gate** → **vulnerable package scan** → EF migration check against a real PostgreSQL → publish artifact → **accessibility audit (WCAG 2.1 AA)** |
 | `deploy.yml` | push to `develop` | CI → deploy to the **staging** slot → smoke test |
 | `deploy.yml` | push to `main` | CI → **manual approval** → deploy to staging slot → smoke test → **blue-green slot swap** → health check → **automatic swap back** on failure |
 | `deploy.yml` | as above, with `HOSTING_PLATFORM=render` | CI → (approval) → Render deploy hook → wait until `/version` shows the new commit → smoke test |
@@ -250,8 +251,9 @@ This creates App Service, PostgreSQL Flexible Server, Key Vault, Application Ins
 | [docs/REQUIREMENTS-TRACEABILITY.md](docs/REQUIREMENTS-TRACEABILITY.md) | Every user story, acceptance criterion and NFR → implementation → test |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure deployment, pipeline setup, email and troubleshooting |
 | [docs/DEPLOYMENT-FREE.md](docs/DEPLOYMENT-FREE.md) | Free alternative: Render + Neon with the same pipeline |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Git workflow, commit convention, PR rules and team ownership |
-| [docs/TASK3-DOC-UPDATES.md](docs/TASK3-DOC-UPDATES.md) | Changes to make to the Task 1 design document |
+| [docs/user-guide/PawConnect_User_Guide.docx](docs/user-guide/PawConnect_User_Guide.docx) | User Guide for adopters, volunteers, administrators and the technical volunteer, with annotated screenshots, setup and FAQ |
+| [docs/presentation/PawConnect_EXPO_Presentation.pptx](docs/presentation/PawConnect_EXPO_Presentation.pptx) | Task 3 EXPO deck with speaker notes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Git workflow, commit convention and PR rules |
 
 
 **Live URLs** 
@@ -276,3 +278,17 @@ All demo accounts use the password **`Demo!Paws2026`**.
 
 Production has no demo accounts. It only holds real shelter data, and its administrator is created from the
 `Seed__AdminEmail` / `Seed__AdminPassword` app settings in Azure.
+
+## What changed for Task 3
+
+Each change answers a point in the Task 2 feedback. Each one went through its own branch and pull request, in small commits.
+
+| Feedback | Change | Where |
+|---|---|---|
+| Replace inline styles with the shared CSS variables | 106 inline `style=""` attributes in 21 views replaced by utility classes in `site.css`. Only data-driven values (chart bar heights, animal colour gradients) stay inline | `refactor/shared-css` |
+| Give each class its own file | 20 grouped files split into one file per type | `refactor/one-type-per-file` |
+| Replace the placeholder SMS sender | `TwilioSmsStrategy` sends real SMS for urgent shift messages, falling back to email | `feature/sms-provider`, [DEPLOYMENT.md](docs/DEPLOYMENT.md#text-messages-sms) |
+| Add MFA for admin accounts | Authenticator-app two-step verification with recovery codes, required for admins in production | `feature/admin-mfa` |
+| Fix the failing production deploy | Deploy failures now print the live `/version` and `/health` and hints, to find the cause | `fix/deploy-diagnostics` |
+| Commit history and solo workflow | Descriptive commits made as the work happened. The docs no longer claim team reviews | this file, [CONTRIBUTING.md](CONTRIBUTING.md) |
+

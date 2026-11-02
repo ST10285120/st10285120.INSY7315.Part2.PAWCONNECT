@@ -71,7 +71,7 @@ Actions triggers each deploy instead.
 Now the flow is the same as on Azure:
 
 ```
-push to develop → CI (build, 132 tests, coverage gate, scans, accessibility) → deploy hook → wait for the
+push to develop → CI (build, 151 tests, coverage gate, scans, accessibility) → deploy hook → wait for the
                   new commit on /version → smoke test staging
 merge to main   → CI → manual approval → deploy hook → wait for /version → smoke test production
 ```

@@ -1,6 +1,6 @@
 # PawConnect architecture & technical decisions
 
-This document explains **what** was built and **why**. It supports the hosting, the architecture and system design discussion and the security and DevOps explanation in the Task 2 presentation.
+This document explains **what** was built and **why**. It supports the hosting, the architecture and system design discussion and the security and DevOps explanation in the final report and EXPO presentation.
 
 ## 1. System overview
 

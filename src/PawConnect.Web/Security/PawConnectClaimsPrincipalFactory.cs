@@ -10,7 +10,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace PawConnect.Web.Security;
 
-/// <summary>Adds the user's first name as a claim so the layout can greet them without a database call.</summary>
+/// <summary>
+/// Adds the user's first name (so the layout can greet them) and whether two-step verification is on
+/// (for RequireAdminTwoFactorFilter) as claims, so neither needs a database call per request.
+/// </summary>
 public class PawConnectClaimsPrincipalFactory : UserClaimsPrincipalFactory<PawConnect.Core.Entities.ApplicationUser, IdentityRole<Guid>>
 {
     public PawConnectClaimsPrincipalFactory(UserManager<PawConnect.Core.Entities.ApplicationUser> userManager,
@@ -21,6 +24,7 @@ public class PawConnectClaimsPrincipalFactory : UserClaimsPrincipalFactory<PawCo
     {
         var identity = await base.GenerateClaimsAsync(user);
         identity.AddClaim(new Claim("given_name", user.FirstName));
+        if (user.TwoFactorEnabled) identity.AddClaim(new Claim(TwoFactorClaims.Type, TwoFactorClaims.Enabled));
         return identity;
     }
 }

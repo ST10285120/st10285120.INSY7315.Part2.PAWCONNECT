@@ -1,0 +1,18 @@
+@model LoginWith2faVm
+@{ ViewBag.Title = "Two-step verification"; }
+<div class="page-head"><div class="wrap"><h1>Two-step verification</h1><p class="page-lede">Your account is protected with an authenticator app.</p></div></div>
+<div class="content wrap">
+  <form class="form-card" asp-action="LoginWith2fa" asp-controller="Account" method="post">
+    <partial name="_ValidationSummary" />
+    <input type="hidden" asp-for="ReturnUrl" />
+    <input type="hidden" asp-for="RememberMe" />
+    <div class="field">
+      <label asp-for="Code"></label>
+      <input asp-for="Code" autocomplete="one-time-code" inputmode="numeric" autofocus aria-describedby="code-hint" />
+      <p class="hint" id="code-hint">Open your authenticator app and enter the 6-digit code for PawConnect. Lost your phone? Enter one of your recovery codes instead.</p>
+      <span asp-validation-for="Code" class="field-error"></span>
+    </div>
+    <button class="btn btn-primary btn-block" type="submit">Verify and log in</button>
+    <p class="hint text-center mt-12"><a href="/Account/Login">Back to log in</a></p>
+  </form>
+</div>

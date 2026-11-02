@@ -99,6 +99,10 @@ jobs:
       - name: Smoke test staging
         run: bash scripts/smoke-test.sh "${{ steps.target.outputs.url }}"
 
+      - name: Diagnose a failed staging deploy
+        if: failure()
+        run: bash scripts/diagnose-deploy.sh "${{ steps.target.outputs.url }}" "${{ steps.target.outputs.app }}" "${{ vars.USE_DEPLOYMENT_SLOTS }}" "${{ vars.AZURE_DEPLOY_AUTH }}"
+
   deploy-production:
     name: Deploy to production (blue-green)
     needs: ci
@@ -180,6 +184,12 @@ jobs:
         run: |
           bash scripts/wait-for-version.sh "$PROD_URL" "$GITHUB_SHA" 600 exact
           bash scripts/smoke-test.sh "$PROD_URL"
+
+      # If anything above failed, print what production is actually answering so the cause is
+      # visible in the run log (wrong URL variable, app crashing on start, missing Key Vault secret...).
+      - name: Diagnose a failed production deploy
+        if: failure()
+        run: bash scripts/diagnose-deploy.sh "$PROD_URL" "${{ vars.AZURE_WEBAPP_NAME }}" "${{ vars.USE_DEPLOYMENT_SLOTS }}" "${{ vars.AZURE_DEPLOY_AUTH }}"
 
   # ======================= Free hosting: Render + Neon =======================
   # Needs secrets RENDER_DEPLOY_HOOK_STAGING / RENDER_DEPLOY_HOOK_PRODUCTION (Render → service → Settings → Deploy Hook)

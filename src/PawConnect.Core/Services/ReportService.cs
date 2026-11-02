@@ -7,33 +7,6 @@ using PawConnect.Core.Interfaces;
 
 namespace PawConnect.Core.Services;
 
-public record DashboardStats(
-    int AnimalsInCare,
-    int AdoptionsThisMonth,
-    int ActiveVolunteers,
-    decimal VolunteerHoursThisMonth,
-    decimal DonationsReceivedThisMonth,
-    int OpenApplications,
-    int PendingHourLogs,
-    int PledgesAwaitingPayment);
-
-public record MonthlyTotal(string Label, int Year, int Month, decimal Amount);
-
-public record ReportSummary(
-    DateOnly From,
-    DateOnly To,
-    decimal DonationsReceived,
-    int DonationCount,
-    decimal GeneralDonations,
-    decimal Sponsorships,
-    decimal AdoptionFees,
-    decimal OutstandingPledges,
-    int ApplicationsSubmitted,
-    int Adoptions,
-    double? AverageDecisionHours,
-    decimal VolunteerHours,
-    IReadOnlyList<Donation> Donations);
-
 /// <summary>Numbers for the shelter dashboard and the funder report / CSV export.</summary>
 public class ReportService
 {

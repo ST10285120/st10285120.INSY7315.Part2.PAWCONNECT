@@ -1,6 +1,6 @@
 @model ShiftsAdminVm
 @{ ViewBag.Title = "Shifts"; }
-<div class="page-head"><div class="wrap"><h1>Volunteer shifts</h1><p style="margin:0;opacity:.85;">Publish the roster. Volunteers sign up from their dashboard, and a shift can never be overbooked.</p></div></div>
+<div class="page-head"><div class="wrap"><h1>Volunteer shifts</h1><p class="page-lede">Publish the roster. Volunteers sign up from their dashboard, and a shift can never be overbooked.</p></div></div>
 <partial name="_AdminSubNav" />
 <div class="content wrap">
   <div class="panel-grid">
@@ -19,7 +19,7 @@
               <td>@start.ToString("ddd d MMM, HH:mm")–@ShelterTime.ToLocal(s.EndsAt).ToString("HH:mm")</td>
               <td>@s.Role</td>
               <td class="mono"><span class="stamp @(s.IsFull ? "stamp-approved" : s.Filled == 0 ? "stamp-rejected" : "stamp-pending")">@s.Filled/@s.Capacity</span></td>
-              <td style="font-size:.85rem;">@string.Join(", ", s.Signups.Select(x => x.Volunteer?.FullName))</td>
+              <td class="text-sm">@string.Join(", ", s.Signups.Select(x => x.Volunteer?.FullName))</td>
             </tr>
           }
           </tbody>
@@ -28,8 +28,8 @@
       }
     </div>
     <div>
-      <div class="form-card" style="max-width:none;">
-        <h2 style="font-size:1.05rem;">Create a shift</h2>
+      <div class="form-card full-width">
+        <h2 class="title-sm">Create a shift</h2>
         <form asp-action="CreateShift" method="post">
           <partial name="_ValidationSummary" />
           <div class="field"><label for="s-date">Date *</label><input id="s-date" type="date" name="NewShift.Date" value="@Model.NewShift.Date.ToString("yyyy-MM-dd")" required /></div>
@@ -44,7 +44,7 @@
           </div>
           <div class="field"><label for="s-notes">Notes</label><textarea id="s-notes" name="NewShift.Notes" maxlength="500">@Model.NewShift.Notes</textarea></div>
           <button class="btn btn-primary btn-block" type="submit">Create shift</button>
-          <p class="hint" style="text-align:center;">Times are South African Standard Time.</p>
+          <p class="hint text-center">Times are South African Standard Time.</p>
         </form>
       </div>
     </div>

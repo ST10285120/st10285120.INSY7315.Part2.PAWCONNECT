@@ -7,7 +7,7 @@
 }
 <div class="page-head"><div class="wrap">
   <h1>Shelter dashboard</h1>
-  <p style="margin:0;opacity:.85;">Overview for the board and funder reporting.</p>
+  <p class="page-lede">Overview for the board and funder reporting.</p>
 </div></div>
 <partial name="_AdminSubNav" />
 <div class="content wrap">
@@ -17,16 +17,16 @@
     <div class="stat-card"><div class="num">@s.ActiveVolunteers</div><div class="lbl">Active volunteers</div></div>
     <div class="stat-card"><div class="num">@s.VolunteerHoursThisMonth.ToString("0.#")h</div><div class="lbl">Volunteer hours this month</div></div>
   </div>
-  <div class="stat-cards" style="margin-top:-8px;">
+  <div class="stat-cards mt-n8">
     <div class="stat-card"><div class="num">@s.DonationsReceivedThisMonth.ToString("C0", zar)</div><div class="lbl">Donations received this month</div></div>
     <a class="stat-card link-card" href="/Volunteer/Dashboard"><div class="num">@s.OpenApplications</div><div class="lbl">Open applications →</div></a>
     <a class="stat-card link-card" href="/Admin/Hours?status=Pending"><div class="num">@s.PendingHourLogs</div><div class="lbl">Hour logs to approve →</div></a>
     <a class="stat-card link-card" href="/Admin/Donations"><div class="num">@s.PledgesAwaitingPayment</div><div class="lbl">Pledges awaiting payment →</div></a>
   </div>
 
-  <div class="grid-2" style="align-items:start;">
+  <div class="grid-2 items-start">
     <div>
-      <div class="section-head"><h2 style="font-size:1.2rem;">Recent applications</h2></div>
+      <div class="section-head"><h2 class="title-lg">Recent applications</h2></div>
       @if (Model.RecentApplications.Count == 0)
       {
         <div class="empty-hint">No applications yet.</div>
@@ -52,8 +52,8 @@
       }
     </div>
     <div>
-      <div class="section-head"><h2 style="font-size:1.2rem;">Donations received, last 6 months</h2><a class="btn btn-ghost btn-sm" href="/Admin/Reports">Reports →</a></div>
-      <div class="form-card" style="max-width:none;">
+      <div class="section-head"><h2 class="title-lg">Donations received, last 6 months</h2><a class="btn btn-ghost btn-sm" href="/Admin/Reports">Reports →</a></div>
+      <div class="form-card full-width">
         @* The chart is decorative for sighted users; screen readers get the same numbers as a table. *@
         <table class="sr-only">
           <caption>Donations received per month, last 6 months</caption>

@@ -8,7 +8,7 @@
 <div class="content wrap">
   <div class="panel-grid">
     <div>
-      <div class="form-card" style="max-width:none;">
+      <div class="form-card full-width">
         <form asp-action="EditAnimal" method="post">
           <partial name="_ValidationSummary" />
           <input type="hidden" name="Form.Id" value="@Model.Form.Id" />
@@ -22,8 +22,8 @@
       </div>
     </div>
     <div>
-      <div class="form-card" style="max-width:none;">
-        <h2 style="font-size:1.05rem;">Status</h2>
+      <div class="form-card full-width">
+        <h2 class="title-sm">Status</h2>
         <form asp-action="SetAnimalStatus" method="post" class="status-form">
           <input type="hidden" name="id" value="@Model.Form.Id" />
           <input type="hidden" name="returnTo" value="edit" />
@@ -31,8 +31,8 @@
           <button class="btn btn-ink btn-sm" type="submit">Save</button>
         </form>
       </div>
-      <div class="form-card" style="max-width:none;margin-top:16px;">
-        <h2 style="font-size:1.05rem;">Photos</h2>
+      <div class="form-card full-width mt-16">
+        <h2 class="title-sm">Photos</h2>
         @if (Model.Photos.Count == 0) { <p class="hint">No photos yet. The listing shows a coloured placeholder until you add one.</p> }
         <div class="photo-grid">
           @foreach (var ph in Model.Photos)
@@ -49,7 +49,7 @@
             </figure>
           }
         </div>
-        <form asp-action="UploadPhoto" method="post" enctype="multipart/form-data" style="margin-top:12px;">
+        <form class="mt-12" asp-action="UploadPhoto" method="post" enctype="multipart/form-data">
           <input type="hidden" name="id" value="@Model.Form.Id" />
           <div class="field"><label for="photo">Add a photo (JPEG, PNG or WebP, max 2 MB)</label><input id="photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" required /></div>
           <button class="btn btn-ink btn-block" type="submit">Upload</button>

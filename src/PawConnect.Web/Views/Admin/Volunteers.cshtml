@@ -3,7 +3,7 @@
     ViewBag.Title = "Volunteers";
     string sort = ViewBag.Sort;
 }
-<div class="page-head"><div class="wrap"><h1>Volunteers</h1><p style="margin:0;opacity:.85;">Everyone registered to help at Hope &amp; Paws.</p></div></div>
+<div class="page-head"><div class="wrap"><h1>Volunteers</h1><p class="page-lede">Everyone registered to help at Hope &amp; Paws.</p></div></div>
 <partial name="_AdminSubNav" />
 <div class="content wrap">
   <div class="section-head"><span></span><a class="btn btn-primary btn-sm" href="/Admin/Users?filter=Volunteer#new-user">Add volunteer</a></div>
@@ -31,7 +31,7 @@
           <td class="mono">@r.ApprovedHours.ToString("0.#")h</td>
           <td>
             @if (r.PendingLogs > 0) { <a href="/Admin/Hours?volunteerId=@v.Id&amp;status=Pending" class="stamp stamp-pending">@r.PendingLogs pending</a> }
-            else { <span style="color:var(--ink-soft);">—</span> }
+            else { <span class="text-soft">—</span> }
           </td>
           <td>@if (v.IsActive) { <span class="stamp stamp-available">Active</span> } else { <span class="stamp stamp-adopted">Inactive</span> }</td>
         </tr>
@@ -39,5 +39,5 @@
     </tbody>
   </table>
   </div>
-  <p class="hint" style="margin-top:14px;">Sorted by @(sort == "hours" ? "approved hours (highest first)" : sort == "joined" ? "join date" : "name").</p>
+  <p class="hint mt-14">Sorted by @(sort == "hours" ? "approved hours (highest first)" : sort == "joined" ? "join date" : "name").</p>
 </div>

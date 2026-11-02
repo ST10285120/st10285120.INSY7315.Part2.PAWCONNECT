@@ -6,18 +6,18 @@
 <div class="page-head"><div class="wrap">
   <a class="breadcrumb" href="/Volunteer/Dashboard">← Back to dashboard</a>
   <h1>Application <span class="mono">@app.ReferenceNumber</span></h1>
-  <p style="margin:0;opacity:.85;">@app.FullName wants to adopt <a href="/Home/Profile/@app.AnimalId" style="color:var(--marigold);">@app.Animal?.Name</a></p>
+  <p class="page-lede">@app.FullName wants to adopt <a class="text-accent" href="/Home/Profile/@app.AnimalId">@app.Animal?.Name</a></p>
 </div></div>
 @if (Model.IsAdmin) { <partial name="_AdminSubNav" /> }
 <div class="content wrap">
   <div class="panel-grid">
     <div>
-      <div class="info-card" style="margin-bottom:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div class="info-card mb-20">
+        <div class="row-between">
           <partial name="_AppStatus" model="app.Status" />
           <span class="hint">Submitted @ShelterTime.ToLocal(app.SubmittedAt).ToString("d MMM yyyy, HH:mm")</span>
         </div>
-        <dl class="review-list" style="margin-top:14px;">
+        <dl class="review-list mt-14">
           <dt>Name</dt><dd>@app.FullName</dd>
           <dt>Phone</dt><dd><a href="tel:@app.Phone">@app.Phone</a></dd>
           <dt>Email</dt><dd><a href="mailto:@app.Email">@app.Email</a></dd>
@@ -30,7 +30,7 @@
         </dl>
       </div>
 
-      <div class="section-head"><h2 style="font-size:1.2rem;">History</h2></div>
+      <div class="section-head"><h2 class="title-lg">History</h2></div>
       <ol class="timeline">
         @foreach (var h in app.StatusHistory.OrderBy(h => h.ChangedAt))
         {
@@ -46,8 +46,8 @@
     </div>
 
     <div>
-      <div class="form-card" style="max-width:none;">
-        <h2 style="font-size:1.05rem;">Next step</h2>
+      <div class="form-card full-width">
+        <h2 class="title-sm">Next step</h2>
         @if (Model.CanStartReview)
         {
           <p class="hint">Start the review so the applicant can see someone is looking at it.</p>
@@ -75,12 +75,12 @@
           }
           @if (!Model.FeeRecorded)
           {
-            <form asp-action="AdoptionFee" asp-route-id="@app.Id" method="post" style="margin-top:14px;">
+            <form class="mt-14" asp-action="AdoptionFee" asp-route-id="@app.Id" method="post">
               <div class="field"><label for="fee">Adoption fee received (R)</label><input id="fee" name="amount" type="number" min="1" step="0.01" value="950" required /></div>
               <button class="btn btn-ink btn-block" type="submit">Record adoption fee</button>
             </form>
           }
-          <form asp-action="Complete" asp-route-id="@app.Id" method="post" style="margin-top:14px;" data-confirm="Mark @(app.Animal?.Name) as adopted? This closes the application.">
+          <form class="mt-14" asp-action="Complete" asp-route-id="@app.Id" method="post" data-confirm="Mark @(app.Animal?.Name) as adopted? This closes the application.">
             <button class="btn btn-primary btn-block" type="submit" disabled="@(!Model.CanComplete)">Mark as adopted</button>
             @if (!Model.CanComplete) { <p class="hint">Record the home visit and the adoption fee first.</p> }
           </form>

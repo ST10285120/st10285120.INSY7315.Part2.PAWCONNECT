@@ -9,4 +9,7 @@ public class TokenRequest
 {
     [Required, EmailAddress] public string Email { get; set; } = "";
     [Required] public string Password { get; set; } = "";
+
+    /// <summary>6-digit authenticator code. Required only for accounts with two-step verification on.</summary>
+    public string? TwoFactorCode { get; set; }
 }

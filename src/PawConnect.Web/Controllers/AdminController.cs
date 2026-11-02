@@ -15,6 +15,7 @@ namespace PawConnect.Web.Controllers;
 
 /// <summary>Shelter administrator area: dashboard, animals, volunteers, hours, users, shifts, donations, reports.</summary>
 [Authorize(Roles = Roles.Administrator)]
+[TypeFilter(typeof(RequireAdminTwoFactorFilter))]
 public class AdminController : Controller
 {
     private readonly ReportService _reports;

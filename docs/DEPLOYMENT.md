@@ -153,3 +153,22 @@ Without these settings, emails are written to the log and to the `Notifications`
 | Slot swap step fails | You're on F1 or B1: set `USE_DEPLOYMENT_SLOTS=false` and `AZURE_WEBAPP_NAME_STAGING=<app>-staging` (the setup script does this), or scale the plan to S1 |
 | F1: site slow or "quota exceeded" | The free plan sleeps when idle and has 60 CPU minutes a day. Scale up to B1/S1 for the demo |
 | Login fails in the pipeline | Check the federated credential subjects match your repo name and branch or environment exactly |
+
+## Text messages (SMS)
+
+Urgent notifications (shift sign-up confirmations and reminders) go by SMS first and fall back to email. SMS is off until you configure it:
+
+1. Create a Twilio account and buy (or, on a trial, verify) a number that can text South African mobiles.
+2. Put the auth token in Key Vault and add these App Service settings for **production** (mark them as deployment-slot settings):
+
+| Setting | Value |
+|---|---|
+| `Notifications__Sms__Enabled` | `true` |
+| `Notifications__Sms__Provider` | `Twilio` |
+| `Notifications__Sms__AccountSid` | your Account SID (starts with `AC`) |
+| `Notifications__Sms__AuthToken` | `@Microsoft.KeyVault(SecretUri=https://<vault>.vault.azure.net/secrets/twilio-auth-token/)` |
+| `Notifications__Sms__FromNumber` | your Twilio number, e.g. `+27...` (or set `MessagingServiceSid` instead) |
+
+Leave staging on `Provider = Log`, so test sign-ups never text real people. Every attempt (SMS or email, sent or failed) is recorded in the Notifications table. Phone numbers are masked in the logs.
+
+Why Twilio: Azure Communication Services can't send SMS to South African numbers. Twilio is pay as you go, and the app only texts urgent shift messages, so the cost stays inside the budget in design doc section 9.

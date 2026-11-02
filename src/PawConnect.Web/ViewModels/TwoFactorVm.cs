@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace PawConnect.Web.ViewModels;
 
@@ -9,11 +10,11 @@ public class TwoFactorVm
     /// <summary>True when this account must use two-step verification (administrators in production).</summary>
     public bool IsRequired { get; set; }
 
-    /// <summary>The authenticator key, grouped in fours so it is easy to type into an app.</summary>
-    public string SharedKey { get; set; } = "";
+    /// <summary>Display only (never posted back). The authenticator key, grouped in fours so it is easy to type into an app.</summary>
+    [ValidateNever] public string SharedKey { get; set; } = "";
 
     /// <summary>otpauth:// link: opens the authenticator app directly on a phone.</summary>
-    public string AuthenticatorUri { get; set; } = "";
+    [ValidateNever] public string AuthenticatorUri { get; set; } = "";
 
     public int RecoveryCodesLeft { get; set; }
 

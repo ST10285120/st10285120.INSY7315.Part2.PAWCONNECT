@@ -18,7 +18,7 @@ PASSWORD = os.environ.get("DEMO_PASSWORD", "Demo!Paws2026")
 # (account, pages). Special steps navigate through the UI to reach pages that need an id.
 PLAN = {
     None: ["/", "/Home/Browse", "/Home/Donate", "/Account/Login", "/Account/Register", "/Home/Privacy", "/no-such-page"],
-    "adopter@pawconnect.demo": ["/Applications/Mine", "/Account/Me", "@profile", "@apply"],
+    "adopter@pawconnect.demo": ["/Applications/Mine", "/Account/Me", "/Account/TwoFactor", "@profile", "@apply"],
     "priya@pawconnect.demo": ["/Volunteer/Dashboard", "@profile"],
     "admin@pawconnect.demo": ["/Admin/Dashboard", "/Admin/Animals", "@edit-animal", "/Admin/Volunteers", "/Admin/Hours",
                               "/Admin/Users", "/Admin/Shifts", "/Admin/Donations", "/Admin/Reports", "@review"],

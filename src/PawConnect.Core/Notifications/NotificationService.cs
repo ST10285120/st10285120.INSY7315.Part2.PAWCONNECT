@@ -6,12 +6,6 @@ using PawConnect.Core.Interfaces;
 
 namespace PawConnect.Core.Notifications;
 
-public class NotificationOptions
-{
-    public int MaxAttemptsPerChannel { get; set; } = 3;
-    public int InitialBackoffMilliseconds { get; set; } = 200;
-}
-
 /// <summary>
 /// Sends through the selected strategies. Each channel is retried with exponential backoff,
 /// then the next channel is tried (risk register: "retry queue with exponential backoff,
